@@ -503,7 +503,7 @@ export default function AiAssistant() {
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask a question..."
+                  placeholder="Ask anything, e.g. I want to report a lost car"
                   className="bg-transparent border-none focus-visible:ring-0 text-base sm:text-lg px-4 sm:px-8 h-12 sm:h-16 placeholder:text-white/20 font-medium"
                 />
                 <Button 
