@@ -1,5 +1,5 @@
 import path from "path";
-import { createServer } from "./index";
+import { createServer } from "./app";
 import * as express from "express";
 
 const app = createServer();
