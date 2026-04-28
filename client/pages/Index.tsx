@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Fingerprint, Briefcase, Car, HeartPulse, GraduationCap, Users, Menu, 
-  Landmark, FileText, ArrowRight, X, Bot, RefreshCw, Sparkles, Search, 
+  Landmark, FileText, ArrowRight, X, Bot, RefreshCw, Sparkles, Search, Send,
   Truck, Hospital, School, Wallet, Globe, Shield, Activity, Bell, FileSearch 
 } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
@@ -23,7 +23,7 @@ export default function Index() {
   
   // AI Search State
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchMode, setSearchMode] = useState<"normal" | "ai">("normal");
+  const [searchMode, setSearchMode] = useState<"normal" | "ai">("ai");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -136,38 +136,38 @@ export default function Index() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050A0F_100%)] opacity-80 z-0"></div>
         <div className="absolute inset-0 bg-emerald-950/10 mix-blend-overlay z-0"></div>
 
-        <div className="container mx-auto relative min-h-[75vh] sm:min-h-[85vh] flex items-center justify-center px-4 z-10">
-          <div className="text-center text-white max-w-5xl">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tighter drop-shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
-              Seamless Access to Zambian Government Services
+        <div className="relative pt-12 pb-20 sm:pt-32 sm:pb-48 flex items-center justify-center px-4 sm:px-12 z-10 w-full">
+          <div className="text-center text-white w-full max-w-screen-xl mx-auto">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tighter drop-shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
+              Digital Access <br className="sm:hidden" /> to Services
             </h1>
-            <p className="mt-8 text-lg sm:text-2xl text-white/80 font-medium max-w-2xl mx-auto leading-relaxed drop-shadow-lg">
-              Your official digital gateway to reliable public services. Fast, simple, and available 24/7.
+            <p className="mt-4 sm:mt-8 text-sm sm:text-2xl text-white/60 sm:text-white/80 font-medium max-w-2xl mx-auto leading-relaxed drop-shadow-lg">
+              The official gateway to Zambian public services. <span className="hidden sm:inline">Fast, simple, and available 24/7.</span>
             </p>
 
-            <div className="mt-14 max-w-3xl mx-auto">
-              <div className="flex items-center justify-center gap-3 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <button 
-                  onClick={() => setSearchMode("normal")}
-                  className={cn(
-                    "px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-300 border border-white/10",
-                    searchMode === "normal" 
-                      ? "bg-white text-emerald-950 shadow-[0_20px_50px_rgba(255,255,255,0.1)] scale-105" 
-                      : "bg-white/5 text-white/60 hover:bg-white/10 backdrop-blur-md"
-                  )}
-                >
-                  General Search
-                </button>
+            <div className="mt-8 sm:mt-14 w-full max-w-4xl mx-auto">
+              <div className="flex items-center justify-center gap-2 mb-6 sm:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <button 
                   onClick={() => setSearchMode("ai")}
                   className={cn(
-                    "px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-300 flex items-center gap-3 border border-white/10",
+                    "px-6 py-2 sm:px-8 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 flex items-center gap-2 border border-white/10",
                     searchMode === "ai" 
-                      ? "bg-emerald-600 text-white shadow-[0_20px_50px_rgba(16,185,129,0.2)] scale-105" 
-                      : "bg-white/5 text-white/60 hover:bg-white/10 backdrop-blur-md"
+                      ? "bg-emerald-600 text-white shadow-2xl scale-105" 
+                      : "bg-white/5 text-white/40 hover:bg-white/10 backdrop-blur-md"
                   )}
                 >
-                  <Sparkles className="h-4 w-4" /> AI Assistant
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> AI Assistant
+                </button>
+                <button 
+                  onClick={() => setSearchMode("normal")}
+                  className={cn(
+                    "px-6 py-2 sm:px-8 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 border border-white/10",
+                    searchMode === "normal" 
+                      ? "bg-white text-emerald-950 shadow-2xl scale-105" 
+                      : "bg-white/5 text-white/40 hover:bg-white/10 backdrop-blur-md"
+                  )}
+                >
+                  Search
                 </button>
               </div>
 
@@ -189,19 +189,19 @@ export default function Index() {
                     type="text" 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={searchMode === "ai" ? "Ask me anything... (e.g. How do I start a company?)" : "Search for government services..."} 
-                    className="w-full p-8 pr-20 rounded-[2.5rem] bg-white/10 backdrop-blur-3xl border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 shadow-[0_30px_100px_rgba(0,0,0,0.5)] transition-all h-20 sm:h-24 text-xl font-medium"
+                    placeholder={searchMode === "ai" ? "Ask anything..." : "Search services..."} 
+                    className="w-full p-6 sm:p-8 pr-16 sm:pr-20 rounded-2xl sm:rounded-[2.5rem] bg-white/10 backdrop-blur-3xl border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 shadow-2xl transition-all h-16 sm:h-24 text-base sm:text-xl font-medium"
                   />
                   <Button 
                     type="submit" 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-2xl h-12 w-12 sm:h-14 sm:w-14 p-0 bg-emerald-600 hover:bg-emerald-500 transition-all shadow-xl"
+                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 rounded-xl sm:rounded-2xl h-12 w-12 sm:h-14 sm:w-14 p-0 bg-emerald-600 hover:bg-emerald-500 transition-all shadow-xl"
                   >
-                    {searchMode === "ai" ? <Sparkles className="h-6 w-6" /> : <Search className="h-6 w-6" />}
+                    <Send className="h-5 w-5 sm:h-6 sm:w-6" />
                   </Button>
                 </div>
               </form>
 
-              <div className="mt-8 flex flex-wrap justify-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+              <div className="hidden sm:flex mt-8 flex-wrap justify-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
                 {[
                   { label: "Business", query: "I want to register a new company", icon: Briefcase },
                   { label: "Students", query: "I need information about bursaries and education", icon: School },

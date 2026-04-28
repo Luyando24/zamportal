@@ -352,7 +352,7 @@ export default function AiAssistant() {
         <main className="flex-1 overflow-hidden flex flex-col w-full relative">
           <div 
             ref={scrollRef}
-            className="flex-1 overflow-y-auto p-6 md:p-12 space-y-8 scroll-smooth pb-32"
+            className="flex-1 overflow-y-auto p-6 md:p-12 space-y-8 scroll-smooth pb-48"
           >
             {messages.map((msg, idx) => (
               <div 
