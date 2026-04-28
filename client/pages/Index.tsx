@@ -1,120 +1,229 @@
-import { Fingerprint, Briefcase, Car, HeartPulse, GraduationCap, Users, Menu, Landmark, FileText, ArrowRight } from 'lucide-react';
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { 
+  Fingerprint, Briefcase, Car, HeartPulse, GraduationCap, Users, Menu, 
+  Landmark, FileText, ArrowRight, X, Bot, RefreshCw, Sparkles, Search, 
+  Truck, Hospital, School, Wallet, Globe, Shield, Activity, Bell, FileSearch 
+} from 'lucide-react';
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import ThemeToggle from "@/components/navigation/ThemeToggle";
 import MobileBottomNav from "@/components/navigation/MobileBottomNav";
-import { useState, useEffect } from 'react';
 
 import Chatbot from '@/components/Landing/Chatbot';
-import DemoModal from '@/components/Landing/DemoModal';
+import { cn } from "@/lib/utils";
 
 export default function Index() {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [portals, setPortals] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [popularServices, setPopularServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // AI Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMode, setSearchMode] = useState<"normal" | "ai">("normal");
 
   useEffect(() => {
-    fetch("/api/portals")
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setPortals(data);
-        } else {
-          console.error("Invalid portal data received:", data);
-          setPortals([]);
-        }
-      })
-      .catch(err => {
-        console.error("Failed to fetch portals:", err);
-        setPortals([]);
-      });
+    const fetchData = async () => {
+      try {
+        const [portalsRes, categoriesRes, popularRes] = await Promise.all([
+          fetch("/api/portals"),
+          fetch("/api/categories"),
+          fetch("/api/services/popular")
+        ]);
+
+        const portalsData = await portalsRes.json();
+        const categoriesData = await categoriesRes.json();
+        const popularData = await popularRes.json();
+
+        if (Array.isArray(portalsData)) setPortals(portalsData);
+        if (Array.isArray(categoriesData)) setCategories(categoriesData);
+        if (Array.isArray(popularData)) setPopularServices(popularData);
+      } catch (err) {
+        console.error("Failed to fetch landing page data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
+
+  const getIcon = (iconName: string) => {
+    const icons: Record<string, any> = {
+      'briefcase': Briefcase,
+      'heart-pulse': HeartPulse,
+      'graduation-cap': GraduationCap,
+      'car': Car,
+      'users': Users,
+      'fingerprint': Fingerprint,
+      'landmark': Landmark,
+      'file-text': FileText,
+      'truck': Truck,
+      'hospital': Hospital,
+      'school': School,
+      'wallet': Wallet,
+      'globe': Globe,
+      'shield': Shield,
+      'activity': Activity,
+      'bell': Bell,
+      'file-search': FileSearch
+    };
+    return icons[iconName?.toLowerCase()] || FileSearch;
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-16 md:pb-0">
       <Chatbot />
-      <DemoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      <header className="sticky top-0 border-b bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 z-50 shadow-sm">
-        <div className="container mx-auto flex items-center justify-between py-4 px-4">
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/images/logo.png" alt="Zambia Coat of Arms" className="h-12 w-auto" />
-            <div>
-              <span className="text-2xl font-black tracking-tight leading-none">Zam<span className="text-emerald-600">Portal</span></span>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mt-1">Official Government Engine</p>
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b shadow-sm">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-4 group">
+            <img src="/images/logo.png" alt="Zambia Coat of Arms" className="h-12 w-auto transition-transform group-hover:scale-110 duration-500" />
+            <div className="hidden sm:block">
+              <h1 className="text-xl font-black tracking-tight leading-none uppercase italic">Zam<span className="text-emerald-600">Portal</span></h1>
+              <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mt-1">Republic of Zambia</p>
             </div>
           </Link>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
-            <button onClick={() => setIsModalOpen(true)} className="hover:text-emerald-600 transition-all">All Services</button>
-            <button onClick={() => setIsModalOpen(true)} className="hover:text-emerald-600 transition-all">Life Scenarios</button>
-            <button onClick={() => setIsModalOpen(true)} className="hover:text-emerald-600 transition-all">FAQ</button>
-            <button onClick={() => setIsModalOpen(true)} className="hover:text-emerald-600 transition-all">Help</button>
-            <button onClick={() => setIsModalOpen(true)} className="hover:text-emerald-600 transition-all">News</button>
+          <nav className="hidden lg:flex items-center gap-10">
+            <Link to="/services" className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-emerald-600 transition-all">Digital Services</Link>
+            <Link to="/services" className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-emerald-600 transition-all">Life Scenarios</Link>
+            <Link to="/services" className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-emerald-600 transition-all">News & Updates</Link>
             
-            <div className="flex items-center gap-4 border-l pl-8">
-              <Button variant="ghost" onClick={() => setIsModalOpen(true)} className="font-bold">
-                Register
-              </Button>
+            <div className="flex items-center gap-4 ml-6 pl-10 border-l border-slate-100 dark:border-slate-800">
+              <ThemeToggle />
               <Link to="/login">
-                <Button className="bg-emerald-600 hover:bg-emerald-700 font-bold px-6 shadow-lg shadow-emerald-600/20">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 font-black px-8 rounded-2xl h-12 shadow-xl shadow-emerald-600/20 text-sm uppercase tracking-widest transition-all hover:scale-105 active:scale-95">
                   Sign In
                 </Button>
               </Link>
-              <ThemeToggle />
             </div>
           </nav>
           
-          {/* Mobile Navigation */}
-          <div className="flex items-center gap-2 md:hidden">
+          {/* Mobile Navigation Toggle */}
+          <div className="flex items-center gap-3 lg:hidden">
             <ThemeToggle />
-            <Button variant="default" className="rounded-full" onClick={() => setIsModalOpen(true)}>
-              Login
-            </Button>
-            <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2">
-              <Menu className="h-6 w-6" />
+            <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 h-12 w-12 rounded-2xl bg-slate-50 dark:bg-slate-800">
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
           </div>
         </div>
         
+        {/* Mobile Dropdown */}
         {isMenuOpen && (
-          <div className="md:hidden bg-background border-t">
-            <nav className="flex flex-col gap-4 p-4">
-              <button onClick={() => setIsModalOpen(true)} className="text-muted-foreground hover:text-primary transition-colors py-2 text-left">All Services</button>
-              <button onClick={() => setIsModalOpen(true)} className="text-muted-foreground hover:text-primary transition-colors py-2 text-left">Life Scenarios</button>
-              <button onClick={() => setIsModalOpen(true)} className="text-muted-foreground hover:text-primary transition-colors py-2 text-left">FAQ</button>
-              <button onClick={() => setIsModalOpen(true)} className="text-muted-foreground hover:text-primary transition-colors py-2 text-left">Help</button>
-              <button onClick={() => setIsModalOpen(true)} className="text-muted-foreground hover:text-primary transition-colors py-2 text-left">News</button>
-              <button onClick={() => setIsModalOpen(true)} className="text-muted-foreground hover:text-primary transition-colors py-2 text-left">Contact us</button>
-              <Button variant="ghost" onClick={() => setIsModalOpen(true)}>
-                New User
-              </Button>
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border-b shadow-2xl animate-in slide-in-from-top duration-300">
+            <nav className="flex flex-col p-6 space-y-4">
+              <Link to="/services" className="text-sm font-black uppercase tracking-widest py-4 border-b border-slate-50 dark:border-slate-800 text-left">Digital Services</Link>
+              <Link to="/services" className="text-sm font-black uppercase tracking-widest py-4 border-b border-slate-50 dark:border-slate-800 text-left">Life Scenarios</Link>
+              <Link to="/services" className="text-sm font-black uppercase tracking-widest py-4 border-b border-slate-50 dark:border-slate-800 text-left">News</Link>
+              <Link to="/login" className="pt-4">
+                <Button className="w-full bg-emerald-600 h-14 font-black rounded-2xl text-lg shadow-xl shadow-emerald-600/20">
+                  Secure Sign In
+                </Button>
+              </Link>
             </nav>
           </div>
         )}
       </header>
 
-      <section className="relative bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/images/herobg.jpg')" }}>
-        <div className="absolute inset-0 bg-gradient-to-br from-green-900/70 to-green-900/10 backdrop-blur-sm"></div>
-        <div className="container mx-auto relative min-h-[70vh] sm:min-h-[78vh] flex items-center justify-center px-4 z-10">
-          <div className="text-center text-white max-w-4xl">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tighter">
+      <section className="relative bg-cover bg-center bg-no-repeat overflow-hidden" style={{ backgroundImage: "url('/images/herobg.jpg')" }}>
+        {/* Advanced Blending Stack for Maximum Focus */}
+        <div className="absolute inset-0 bg-[#050A0F]/85 backdrop-blur-[3px] z-0"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050A0F]/60 via-transparent to-[#050A0F] z-0"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050A0F_100%)] opacity-80 z-0"></div>
+        <div className="absolute inset-0 bg-emerald-950/10 mix-blend-overlay z-0"></div>
+
+        <div className="container mx-auto relative min-h-[75vh] sm:min-h-[85vh] flex items-center justify-center px-4 z-10">
+          <div className="text-center text-white max-w-5xl">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tighter drop-shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
               Seamless Access to Zambian Government Services
             </h1>
-            <p className="mt-6 text-lg sm:text-xl text-gray-200">
-              Your digital gateway to public services. Fast, simple, and available 24/7.
+            <p className="mt-8 text-lg sm:text-2xl text-white/80 font-medium max-w-2xl mx-auto leading-relaxed drop-shadow-lg">
+              Your official digital gateway to reliable public services. Fast, simple, and available 24/7.
             </p>
-            <div className="mt-10 max-w-2xl mx-auto">
-              <div className="relative">
-                <input 
-                  type="search" 
-                  placeholder="What service are you looking for? (e.g., Passport, NRC)" 
-                  className="w-full p-5 pr-16 rounded-full bg-white/90 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-primary/50 shadow-lg"
-                />
-                <Button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full h-12 w-12 p-0 bg-primary hover:bg-primary/90">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21 21-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"></path></svg>
-                </Button>
+
+            <div className="mt-14 max-w-3xl mx-auto">
+              <div className="flex items-center justify-center gap-3 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <button 
+                  onClick={() => setSearchMode("normal")}
+                  className={cn(
+                    "px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-300 border border-white/10",
+                    searchMode === "normal" 
+                      ? "bg-white text-emerald-950 shadow-[0_20px_50px_rgba(255,255,255,0.1)] scale-105" 
+                      : "bg-white/5 text-white/60 hover:bg-white/10 backdrop-blur-md"
+                  )}
+                >
+                  General Search
+                </button>
+                <button 
+                  onClick={() => setSearchMode("ai")}
+                  className={cn(
+                    "px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-300 flex items-center gap-3 border border-white/10",
+                    searchMode === "ai" 
+                      ? "bg-emerald-600 text-white shadow-[0_20px_50px_rgba(16,185,129,0.2)] scale-105" 
+                      : "bg-white/5 text-white/60 hover:bg-white/10 backdrop-blur-md"
+                  )}
+                >
+                  <Sparkles className="h-4 w-4" /> AI Assistant
+                </button>
+              </div>
+
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!searchQuery.trim()) return;
+                  if (searchMode === "ai") {
+                    navigate(`/assistant?q=${encodeURIComponent(searchQuery)}`);
+                  } else {
+                    navigate(`/services?q=${encodeURIComponent(searchQuery)}`);
+                  }
+                }} 
+                className="relative group"
+              >
+                <div className="absolute -inset-2 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 rounded-[2.5rem] blur-xl opacity-50"></div>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={searchMode === "ai" ? "Ask me anything... (e.g. How do I start a company?)" : "Search for government services..."} 
+                    className="w-full p-8 pr-20 rounded-[2.5rem] bg-white/10 backdrop-blur-3xl border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 shadow-[0_30px_100px_rgba(0,0,0,0.5)] transition-all h-20 sm:h-24 text-xl font-medium"
+                  />
+                  <Button 
+                    type="submit" 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-2xl h-12 w-12 sm:h-14 sm:w-14 p-0 bg-emerald-600 hover:bg-emerald-500 transition-all shadow-xl"
+                  >
+                    {searchMode === "ai" ? <Sparkles className="h-6 w-6" /> : <Search className="h-6 w-6" />}
+                  </Button>
+                </div>
+              </form>
+
+              <div className="mt-8 flex flex-wrap justify-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+                {[
+                  { label: "Business", query: "I want to register a new company", icon: Briefcase },
+                  { label: "Students", query: "I need information about bursaries and education", icon: School },
+                  { label: "Health", query: "Find me health services and clinic registries", icon: Hospital },
+                  { label: "Travel", query: "I need to apply for or renew my passport", icon: Globe },
+                  { label: "Identity", query: "I lost my NRC and need a replacement", icon: Fingerprint }
+                ].map((chip) => (
+                  <button
+                    key={chip.label}
+                    onClick={() => {
+                      if (searchMode === "ai") {
+                        navigate(`/assistant?q=${encodeURIComponent(chip.query)}`);
+                      } else {
+                        navigate(`/services?q=${encodeURIComponent(chip.query)}`);
+                      }
+                    }}
+                    className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 hover:border-emerald-500/50 text-white/80 hover:text-white backdrop-blur-md transition-all text-[11px] font-black uppercase tracking-[0.15em] shadow-lg group"
+                  >
+                    <chip.icon className="h-4 w-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    {chip.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -160,86 +269,30 @@ export default function Index() {
             <p className="text-muted-foreground max-w-2xl mx-auto mt-2">Explore a wide range of government services organized by category.</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            <div className="group relative text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
-                <Briefcase className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Business & Trade</h3>
-              <p className="text-sm text-muted-foreground">Services for starting and running a business.</p>
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button onClick={() => setIsModalOpen(true)}>View & Apply</Button>
-              </div>
-            </div>
-            <div className="group relative text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
-                <HeartPulse className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Health & Wellness</h3>
-              <p className="text-sm text-muted-foreground">Access to healthcare and wellness services.</p>
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button onClick={() => setIsModalOpen(true)}>View & Apply</Button>
-              </div>
-            </div>
-            <div className="group relative text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
-                <GraduationCap className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Education</h3>
-              <p className="text-sm text-muted-foreground">Services related to education and learning.</p>
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button onClick={() => setIsModalOpen(true)}>View & Apply</Button>
-              </div>
-            </div>
-            <div className="group relative text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
-                <Car className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Transport & Driving</h3>
-              <p className="text-sm text-muted-foreground">Services for drivers and vehicle owners.</p>
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button onClick={() => setIsModalOpen(true)}>View & Apply</Button>
-              </div>
-            </div>
-            <div className="group relative text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
-                <Users className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Citizenship & Immigration</h3>
-              <p className="text-sm text-muted-foreground">Services for citizens and immigrants.</p>
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button onClick={() => setIsModalOpen(true)}>View & Apply</Button>
-              </div>
-            </div>
-            <div className="group relative text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
-                <Fingerprint className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Identity & Verification</h3>
-              <p className="text-sm text-muted-foreground">Services for identity and verification.</p>
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button onClick={() => setIsModalOpen(true)}>View & Apply</Button>
-              </div>
-            </div>
-            <div className="group relative text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
-                <Landmark className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Lands & Housing</h3>
-              <p className="text-sm text-muted-foreground">Services for property and housing.</p>
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button onClick={() => setIsModalOpen(true)}>View & Apply</Button>
-              </div>
-            </div>
-            <div className="group relative text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
-                <FileText className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Certificates & Records</h3>
-              <p className="text-sm text-muted-foreground">Services for official documents.</p>
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button onClick={() => setIsModalOpen(true)}>View & Apply</Button>
-              </div>
-            </div>
+            {loading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-48 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200 dark:border-slate-700"></div>
+              ))
+            ) : categories.map((category) => {
+              const Icon = getIcon(category.icon);
+              return (
+                <div key={category.id} className="group relative text-center p-8 rounded-3xl border bg-white dark:bg-slate-900 hover:shadow-2xl transition-all duration-500 overflow-hidden border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-slate-50 dark:bg-slate-800 text-emerald-600 mx-auto mb-6 group-hover:scale-110 transition-transform duration-500">
+                    <Icon className="h-10 w-10" />
+                  </div>
+                  <h3 className="text-lg font-black mb-2 uppercase tracking-tight italic">{category.title}</h3>
+                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed line-clamp-2">{category.description}</p>
+                  <div className="absolute inset-0 bg-emerald-600/90 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 p-6">
+                    <p className="text-white text-xs font-black uppercase tracking-[0.2em] mb-4 text-center">Enter {category.title} Registry</p>
+                    <Link to="/services" className="w-full">
+                      <Button className="w-full bg-white text-emerald-600 hover:bg-emerald-50 rounded-xl font-black h-12 shadow-xl">
+                        Open Catalog
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -253,21 +306,23 @@ export default function Index() {
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-background rounded-lg p-6 text-center transition-all duration-300 shadow-xl -translate-y-2 border border-primary/30">
-              <h3 className="text-xl font-semibold mb-2">National Registration Card (NRC)</h3>
-              <p className="text-muted-foreground mb-4">Apply for a new NRC, replace a lost one, or make amendments to your details.</p>
-              <Button variant="outline" onClick={() => setIsModalOpen(true)}>Apply for Service</Button>
-            </div>
-            <div className="bg-background rounded-lg p-6 text-center transition-all duration-300 shadow-xl -translate-y-2 border border-primary/30">
-              <h3 className="text-xl font-semibold mb-2">Business Registration</h3>
-              <p className="text-muted-foreground mb-4">Register your new company, file annual returns, and manage your business details.</p>
-              <Button variant="outline" onClick={() => setIsModalOpen(true)}>Apply for Service</Button>
-            </div>
-            <div className="bg-background rounded-lg p-6 text-center transition-all duration-300 shadow-xl -translate-y-2 border border-primary/30">
-              <h3 className="text-xl font-semibold mb-2">Driver's License</h3>
-              <p className="text-muted-foreground mb-4">Apply for a provisional license, book a test, or renew your existing driver's license.</p>
-              <Button variant="outline" onClick={() => setIsModalOpen(true)}>Apply for Service</Button>
-            </div>
+            {popularServices.map((service) => (
+              <div key={service.id} className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-left transition-all duration-500 shadow-sm hover:shadow-2xl border border-slate-100 dark:border-slate-800 group relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  {getIcon(service.icon) && React.createElement(getIcon(service.icon), { className: "h-20 w-20" })}
+                </div>
+                <Badge className="mb-4 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-none px-3 py-1 font-bold text-[10px] uppercase tracking-widest">
+                  {service.category_name}
+                </Badge>
+                <h3 className="text-xl font-black mb-3 italic tracking-tight">{service.title}</h3>
+                <p className="text-slate-500 dark:text-slate-400 mb-8 font-bold text-[11px] uppercase tracking-widest leading-relaxed line-clamp-2">{service.description}</p>
+                <Link to={service.portal_slug ? `/${service.portal_slug}/apply/${service.slug}` : "/services"}>
+                  <Button variant="ghost" className="w-full justify-between h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-600 hover:text-white transition-all">
+                    Launch Application <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            ))}
           </div>
         </div>
       </section>

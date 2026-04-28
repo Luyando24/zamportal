@@ -68,3 +68,44 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
     res.status(500).json({ error: error.message || "Failed to delete user" });
   }
 };
+
+// Global Admin Stats
+export const handleAdminStats: RequestHandler = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT status, count(*) as count 
+      FROM service_applications 
+      GROUP BY status
+    `);
+    
+    let total = 0;
+    let approved = 0;
+    let pending = 0;
+    let actionRequired = 0;
+
+    result.rows.forEach(row => {
+      const count = parseInt(row.count);
+      total += count;
+      const status = row.status?.toLowerCase() || '';
+      
+      if (['completed', 'approved', 'delivered'].includes(status)) {
+        approved += count;
+      } else if (['pending', 'processing', 'under-review', 'submitted', 'new'].includes(status)) {
+        pending += count;
+      } else if (['payment-pending', 'additional-info-required', 'rejected'].includes(status)) {
+        actionRequired += count;
+      } else {
+        pending += count; // Default to pending
+      }
+    });
+
+    res.json({
+      totalApplications: total,
+      approved,
+      pending,
+      actionRequired
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Failed to fetch stats" });
+  }
+};

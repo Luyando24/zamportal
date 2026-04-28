@@ -82,7 +82,10 @@ const FormDesigner = () => {
       const models: AiModel[] = data.availableModels || [];
       setAvailableModels(models);
       
-      if (models.includes("groq")) {
+      const savedModel = localStorage.getItem("admin_ai_model") as AiModel;
+      if (savedModel && models.includes(savedModel)) {
+        setSelectedModel(savedModel);
+      } else if (models.includes("groq")) {
         setSelectedModel("groq");
       } else if (models.length > 0) {
         setSelectedModel(models[0]);
@@ -90,6 +93,11 @@ const FormDesigner = () => {
     } catch {
       // AI config fetch failure is non-critical
     }
+  };
+
+  const onModelChange = (model: AiModel) => {
+    setSelectedModel(model);
+    localStorage.setItem("admin_ai_model", model);
   };
 
   useEffect(() => {
@@ -433,7 +441,7 @@ const FormDesigner = () => {
                            return (
                              <button
                                key={m}
-                               onClick={() => setSelectedModel(m)}
+                               onClick={() => onModelChange(m)}
                                className={cn(
                                  "px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300",
                                  active 
@@ -646,7 +654,7 @@ const FormDesigner = () => {
                            return (
                              <button
                                key={m}
-                               onClick={() => setSelectedModel(m)}
+                               onClick={() => onModelChange(m)}
                                className={cn(
                                  "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
                                  active ? "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-sm" : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700"

@@ -10,7 +10,7 @@ import {
   ArrowLeft, Plus, Save, Bot, Wand2, Layers, Briefcase, Lightbulb, ArrowRight, RefreshCw,
   Settings, Database, Layout, Shield, Eye, Trash2, ChevronRight, Sparkles, Command, 
   Terminal, MousePointer2, Type, Hash, Calendar as CalendarIcon, CheckSquare, List,
-  Truck, School, Wallet, FileText, Hospital
+  Truck, School, Wallet, FileText, Hospital, Activity, Bell, Globe, Users
 } from "lucide-react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription 
@@ -37,6 +37,30 @@ const FIELD_ICONS: Record<string, any> = {
   boolean: CheckSquare
 };
 
+const DEFAULT_SUGGESTIONS = [
+  { title: "Fleet Tracking", desc: "Monitor vehicles, drivers, and fuel consumption", icon: "truck" },
+  { title: "Clinic Registry", desc: "Manage medical staff and critical supplies", icon: "hospital" },
+  { title: "Project Vault", desc: "Track budgets, timelines, and team tasks", icon: "briefcase" }
+];
+
+const ICON_MAP: Record<string, any> = {
+  truck: Truck,
+  hospital: Hospital,
+  school: School,
+  briefcase: Briefcase,
+  package: Database,
+  database: Database,
+  wallet: Wallet,
+  "file-text": FileText,
+  settings: Settings,
+  layout: Layout,
+  shield: Shield,
+  activity: Activity,
+  bell: Bell,
+  globe: Globe,
+  users: Users
+};
+
 export default function ModuleFactory() {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -60,16 +84,66 @@ export default function ModuleFactory() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [constructionStep, setConstructionStep] = useState<string | null>(null);
+  const [suggestedModules, setSuggestedModules] = useState<any[]>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/ai/config").then(res => res.json()).then(data => {
       const models: AiModel[] = data.availableModels || [];
       setAvailableModels(models);
-      if (models.includes("groq")) setSelectedModel("groq");
-      else if (models.length > 0) setSelectedModel(models[0]);
+      
+      const savedModel = localStorage.getItem("admin_ai_model") as AiModel;
+      if (savedModel && models.includes(savedModel)) {
+        setSelectedModel(savedModel);
+      } else if (models.includes("groq")) {
+        setSelectedModel("groq");
+      } else if (models.length > 0) {
+        setSelectedModel(models[0]);
+      }
     }).catch(() => {});
   }, []);
+
+  const fetchAiSuggestions = async () => {
+    if (!selectedModel || isSuggesting) return;
+    
+    setIsSuggesting(true);
+    try {
+      const token = session?.tokens?.accessToken;
+      const res = await fetch("/api/ai/suggest-modules", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ model: selectedModel })
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) {
+        setSuggestedModules(data);
+      } else {
+        // Fallback to defaults if AI returns invalid data
+        setSuggestedModules(DEFAULT_SUGGESTIONS);
+      }
+    } catch (e) {
+      console.error("Failed to fetch suggestions", e);
+      setSuggestedModules(DEFAULT_SUGGESTIONS);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  useEffect(() => {
+    // Only auto-fetch suggestions once when the model is first loaded and no fields exist
+    if (selectedModel && fields.length === 0 && suggestedModules.length === 0 && !isSuggesting) {
+      fetchAiSuggestions();
+    }
+  }, [selectedModel, fields.length]); // Added fields.length to ensure it checks after a reset
+
+  const onModelChange = (model: AiModel) => {
+    setSelectedModel(model);
+    localStorage.setItem("admin_ai_model", model);
+  };
 
   const handleAiGenerate = async () => {
     if (!aiPrompt.trim()) return;
@@ -211,7 +285,7 @@ export default function ModuleFactory() {
               <Command className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="font-black text-slate-900 dark:text-white leading-tight">Module Factory</h1>
+              <h1 className="font-black text-slate-900 dark:text-white leading-tight">Design Studio</h1>
               <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 text-blue-500">AI System Builder</p>
             </div>
           </div>
@@ -359,25 +433,53 @@ export default function ModuleFactory() {
                   </p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-8">
-                  {[
-                    { title: "Fleet Tracking", desc: "Vehicles, drivers, fuel", icon: Truck },
-                    { title: "Clinic Registry", desc: "Staff, medical supplies", icon: Hospital },
-                    { title: "Project Vault", desc: "Budgets, timelines, tasks", icon: Briefcase }
-                  ].map((example, i) => (
-                    <Card key={i} className="cursor-pointer hover:border-blue-500 hover:shadow-md transition-all dark:bg-slate-900/50 group rounded-2xl overflow-hidden"
-                      onClick={() => setAiPrompt(`Create a ${example.title} module: ${example.desc}`)}>
-                      <CardContent className="p-6 text-left space-y-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                          <example.icon className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-800 dark:text-slate-200 mb-1">{example.title}</div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{example.desc}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="space-y-4 pt-8">
+                  <div className="flex items-center justify-between max-w-4xl mx-auto">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+                      <Lightbulb className="h-4 w-4 text-amber-500" /> Intelligent Architecture Suggestions
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={fetchAiSuggestions} 
+                      disabled={isSuggesting}
+                      className="h-8 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600"
+                    >
+                      <RefreshCw className={cn("h-3 w-3 mr-1.5", isSuggesting && "animate-spin")} /> Cycle Suggestions
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                    {isSuggesting && suggestedModules.length === 0 ? (
+                      [1, 2, 3].map(i => (
+                        <Card key={i} className="dark:bg-slate-900/50 animate-pulse">
+                          <CardContent className="p-6 space-y-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800" />
+                            <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-3/4" />
+                            <div className="h-3 bg-slate-50 dark:bg-slate-800/50 rounded w-full" />
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      suggestedModules.map((example, i) => {
+                        const Icon = ICON_MAP[example.icon?.toLowerCase()] || Briefcase;
+                        return (
+                          <Card key={i} className="cursor-pointer hover:border-blue-500 hover:shadow-md transition-all dark:bg-slate-900/50 group rounded-2xl overflow-hidden"
+                            onClick={() => setAiPrompt(`Create a ${example.title} module: ${example.desc}`)}>
+                            <CardContent className="p-6 text-left space-y-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <Icon className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-800 dark:text-slate-200 mb-1 group-hover:text-blue-600 transition-colors">{example.title}</div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest line-clamp-2">{example.desc}</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -448,7 +550,7 @@ export default function ModuleFactory() {
                       return (
                         <button
                           key={model}
-                          onClick={() => setSelectedModel(model)}
+                          onClick={() => onModelChange(model)}
                           className={cn(
                             "text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border transition-all",
                             selectedModel === model 

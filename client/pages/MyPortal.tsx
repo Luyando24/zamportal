@@ -71,6 +71,11 @@ export default function MyPortal() {
   const [selectedApp, setSelectedApp] = useState<any>(null);
   const [appHistory, setAppHistory] = useState<any[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [user, setUser] = useState<any>({
+    name: "Citizen",
+    email: "",
+    avatar: undefined,
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -78,10 +83,11 @@ export default function MyPortal() {
 
   const fetchDashboardData = async () => {
     try {
-      const [servicesData, appsData, catsData] = await Promise.all([
+      const [servicesData, appsData, catsData, profileData] = await Promise.all([
         Api.searchServices(""),
         Api.getApplications(),
-        Api.getCategories()
+        Api.getCategories(),
+        Api.getProfile().catch(() => null)
       ]);
       
       if (Array.isArray(servicesData)) setServices(servicesData);
@@ -91,6 +97,13 @@ export default function MyPortal() {
           { title: 'All', icon: 'Zap' },
           ...catsData
         ]);
+      }
+      if (profileData) {
+        setUser({
+          name: profileData.first_name || "Citizen",
+          email: profileData.email || "",
+          avatar: undefined,
+        });
       }
     } catch (error) {
       console.error("Dashboard fetch error:", error);
@@ -118,13 +131,6 @@ export default function MyPortal() {
     Zap, Shield, Briefcase, Car, HeartPulse, GraduationCap, Users, FileText
   };
 
-  // Mock user data
-  const user = {
-    name: "Luyando",
-    email: "luyando@email.com",
-    avatar: "/placeholder.svg",
-    memberSince: "2023"
-  };
 
   const getStatusStyles = (status: string) => {
     switch (status.toLowerCase()) {
@@ -175,6 +181,11 @@ export default function MyPortal() {
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  const activeApps = applications.filter(a => !['completed', 'approved', 'delivered', 'rejected'].includes(a.status?.toLowerCase())).length;
+  const completedApps = applications.filter(a => ['completed', 'approved', 'delivered'].includes(a.status?.toLowerCase())).length;
+  const actionRequiredApps = applications.filter(a => ['additional-info-required', 'payment-pending'].includes(a.status?.toLowerCase())).length;
+  const totalApps = applications.length;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
@@ -328,8 +339,8 @@ export default function MyPortal() {
                     <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-blue-600"><FileText className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">{applications.filter(a => a.status !== 'completed').length}</div>
-                    <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-widest">+1 updated today</p>
+                    <div className="text-3xl font-black">{activeApps}</div>
+                    <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-widest">Currently in progress</p>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-2xl">
@@ -338,28 +349,28 @@ export default function MyPortal() {
                     <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-emerald-600"><CheckCircle className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">{applications.filter(a => a.status === 'completed').length}</div>
-                    <p className="text-[10px] text-emerald-500 mt-2 font-bold uppercase tracking-widest">Ready for collection</p>
+                    <div className="text-3xl font-black">{completedApps}</div>
+                    <p className="text-[10px] text-emerald-500 mt-2 font-bold uppercase tracking-widest">Historical approvals</p>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-2xl">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Recent Activity</CardTitle>
-                    <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-purple-600"><Activity className="h-4 w-4" /></div>
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Action Required</CardTitle>
+                    <div className="p-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg text-orange-600"><AlertCircle className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">12</div>
-                    <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-widest">Interactions this week</p>
+                    <div className="text-3xl font-black">{actionRequiredApps}</div>
+                    <p className="text-[10px] text-orange-500 mt-2 font-bold uppercase tracking-widest">Awaiting your input</p>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-2xl">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Notifications</CardTitle>
-                    <div className="p-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg text-orange-600"><Bell className="h-4 w-4" /></div>
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Total Submissions</CardTitle>
+                    <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-purple-600"><FileText className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">4</div>
-                    <p className="text-[10px] text-orange-500 mt-2 font-bold uppercase tracking-widest">Awaiting action</p>
+                    <div className="text-3xl font-black">{totalApps}</div>
+                    <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-widest">Lifetime applications</p>
                   </CardContent>
                 </Card>
               </div>

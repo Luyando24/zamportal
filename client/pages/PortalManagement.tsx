@@ -71,10 +71,10 @@ const PortalManagement = () => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeTab === 'applications' && data?.id) {
+    if (data?.id) {
       fetchApplications();
     }
-  }, [activeTab, data?.id]);
+  }, [data?.id]);
 
   const fetchApplications = async () => {
     if (!data?.id) return;
@@ -147,6 +147,12 @@ const PortalManagement = () => {
   }
 
   const primaryColor = data.theme_config?.primaryColor || "#006400";
+
+  const totalApplications = applications.length;
+  const pendingReview = applications.filter(a => ['pending', 'submitted', 'under-review', 'new'].includes(a.status?.toLowerCase())).length;
+  const approvedApps = applications.filter(a => ['approved', 'completed', 'delivered'].includes(a.status?.toLowerCase())).length;
+  const approvalRate = totalApplications > 0 ? Math.round((approvedApps / totalApplications) * 100) + '%' : 'N/A';
+  const activeServicesCount = data.services?.length || 0;
 
   const navItems = [
     { id: "overview", label: "Operations Dashboard", icon: Home },
@@ -314,8 +320,8 @@ const PortalManagement = () => {
                     <div className="p-2 rounded-lg" style={{ backgroundColor: `${primaryColor}10`, color: primaryColor }}><FileText className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">1,284</div>
-                    <p className="text-[10px] text-emerald-500 mt-2 font-bold uppercase tracking-widest">+12% this month</p>
+                    <div className="text-3xl font-black">{totalApplications}</div>
+                    <p className="text-[10px] text-emerald-500 mt-2 font-bold uppercase tracking-widest">Lifetime total</p>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900">
@@ -324,28 +330,28 @@ const PortalManagement = () => {
                     <div className="p-2 rounded-lg" style={{ backgroundColor: `${primaryColor}10`, color: primaryColor }}><Clock className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">42</div>
+                    <div className="text-3xl font-black">{pendingReview}</div>
                     <p className="text-[10px] text-orange-500 mt-2 font-bold uppercase tracking-widest">Awaiting officer action</p>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">Revenue Collected</CardTitle>
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${primaryColor}10`, color: primaryColor }}><BarChart3 className="h-4 w-4" /></div>
+                    <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">Approval Rate</CardTitle>
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${primaryColor}10`, color: primaryColor }}><CheckCircle className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">ZMW 45.2k</div>
-                    <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-widest">Settled via ZamPay</p>
+                    <div className="text-3xl font-black">{approvalRate}</div>
+                    <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-widest">Historical Average</p>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">System Health</CardTitle>
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${primaryColor}10`, color: primaryColor }}><Activity className="h-4 w-4" /></div>
+                    <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Services</CardTitle>
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${primaryColor}10`, color: primaryColor }}><Briefcase className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">Stable</div>
-                    <p className="text-[10px] text-emerald-500 mt-2 font-bold uppercase tracking-widest">Full Engine Sync</p>
+                    <div className="text-3xl font-black">{activeServicesCount}</div>
+                    <p className="text-[10px] text-emerald-500 mt-2 font-bold uppercase tracking-widest">Available to citizens</p>
                   </CardContent>
                 </Card>
               </div>
@@ -358,32 +364,38 @@ const PortalManagement = () => {
                       <CardTitle>Incoming Applications</CardTitle>
                       <CardDescription>Latest records from the main ZamPortal citizen engine</CardDescription>
                     </div>
-                    <Button variant="ghost" size="sm" className="font-bold text-xs" style={{ color: primaryColor }}>View Full Queue</Button>
+                    <Button variant="ghost" size="sm" className="font-bold text-xs" style={{ color: primaryColor }} onClick={() => setActiveTab('applications')}>View Full Queue</Button>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {[
-                      { id: "#AP-8921", citizen: "John Doe", service: "License Renewal", time: "2m ago", status: "New" },
-                      { id: "#AP-8920", citizen: "Sarah Mwale", service: "Permit Issue", time: "15m ago", status: "Review" },
-                      { id: "#AP-8919", citizen: "Chanda Kapika", service: "Registration", time: "1h ago", status: "Pending" },
-                      { id: "#AP-8918", citizen: "Mubita L.", service: "Certification", time: "3h ago", status: "New" },
-                    ].map((app, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer group">
+                    {applications.slice(0, 5).map((app, idx) => (
+                      <Link to={`/dashboard/${portalSlug}/applications/${app.id}`} key={app.id || idx} className="flex items-center justify-between p-4 rounded-xl border border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer group">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-[10px] text-slate-500">{app.id}</div>
+                          <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-[10px] text-slate-500">
+                            {app.tracking_number ? app.tracking_number.split('-')[1] || app.tracking_number : 'N/A'}
+                          </div>
                           <div>
-                            <p className="text-sm font-bold">{app.citizen}</p>
-                            <p className="text-[10px] text-muted-foreground">{app.service}</p>
+                            <p className="text-sm font-bold">{app.first_name} {app.last_name}</p>
+                            <p className="text-[10px] text-muted-foreground">{app.service_title}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className="text-[10px] font-bold text-slate-400">{app.time}</span>
-                          <Badge variant="outline" className={`font-bold text-[10px] ${app.status === 'New' ? 'text-blue-500 border-blue-500/20 bg-blue-500/5' : 'text-orange-500 border-orange-500/20'}`}>
+                          <span className="text-[10px] font-bold text-slate-400">{new Date(app.created_at).toLocaleDateString()}</span>
+                          <Badge variant="outline" className={`font-bold text-[10px] ${
+                            ['approved', 'completed'].includes(app.status?.toLowerCase()) ? 'text-emerald-500 border-emerald-500/20 bg-emerald-500/5' :
+                            ['pending', 'new', 'submitted'].includes(app.status?.toLowerCase()) ? 'text-blue-500 border-blue-500/20 bg-blue-500/5' : 
+                            'text-orange-500 border-orange-500/20 bg-orange-500/5'
+                          }`}>
                             {app.status}
                           </Badge>
                           <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-emerald-500" />
                         </div>
-                      </div>
+                      </Link>
                     ))}
+                    {applications.length === 0 && (
+                      <div className="py-8 text-center text-sm font-bold text-slate-400">
+                        No applications received yet.
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

@@ -84,10 +84,22 @@ export default function ServiceDesigner() {
     fetch("/api/ai/config").then(res => res.json()).then(data => {
       const models: AiModel[] = data.availableModels || [];
       setAvailableModels(models);
-      if (models.includes("groq")) setSelectedModel("groq");
-      else if (models.length > 0) setSelectedModel(models[0]);
+      
+      const savedModel = localStorage.getItem("admin_ai_model") as AiModel;
+      if (savedModel && models.includes(savedModel)) {
+        setSelectedModel(savedModel);
+      } else if (models.includes("groq")) {
+        setSelectedModel("groq");
+      } else if (models.length > 0) {
+        setSelectedModel(models[0]);
+      }
     }).catch(() => {});
   }, [portalSlug]);
+
+  const onModelChange = (model: AiModel) => {
+    setSelectedModel(model);
+    localStorage.setItem("admin_ai_model", model);
+  };
 
   const fetchAiSuggestions = async () => {
     if (!portal || !selectedModel || isSuggesting) return;
@@ -408,7 +420,7 @@ export default function ServiceDesigner() {
                       return (
                         <button
                           key={model}
-                          onClick={() => setSelectedModel(model)}
+                          onClick={() => onModelChange(model)}
                           className={cn(
                             "text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border transition-all",
                             selectedModel === model 

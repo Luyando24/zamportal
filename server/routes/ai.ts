@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
+import { query } from "../lib/db";
 
 type SupportedModel = "openai" | "gemini" | "claude" | "groq";
 
@@ -302,6 +303,32 @@ Return a JSON array (no markdown, no explanation) of exactly 4 objects with this
 }]
 Return raw JSON only.`;
 
+const MODULE_SUGGESTIONS_PROMPT = `You are an expert system architect for the Government of Zambia.
+Your task is to suggest internal administrative systems or data registries that can be digitized.
+Return a JSON array of 3 objects with this structure:
+[
+  { "title": "System Name", "desc": "Short description of what it tracks", "icon": "lucide-react icon name (e.g. truck, hospital, school, briefcase, package)" }
+]
+Keep suggestions professional and tailored to Zambian public sector needs. Return raw JSON only.`;
+
+export const RECOMMEND_SERVICES_PROMPT = `
+You are the ZamPortal AI Assistant. Your goal is to help Zambian citizens find the right government services.
+Given a user's natural language request, identify the top 3 most relevant services from the provided list.
+
+List of Available Services:
+{{SERVICES_JSON}}
+
+Response Format (Strict JSON):
+{
+  "response": "A friendly conversational response explaining how these services help.",
+  "recommendations": [
+    { "id": "service_id_from_list", "reason": "Briefly why this fits" }
+  ]
+}
+`;
+
+export type SupportedModel = "openai" | "gemini" | "claude" | "groq";
+
 const MODULE_SCHEMA_SYSTEM_PROMPT = `You are a Principal System Architect. Design a detailed, enterprise-grade data schema for a management module.
 
 OUTPUT RULES:
@@ -389,6 +416,222 @@ export const handleSuggestServices: RequestHandler = async (req, res) => {
   }
 };
 
+export const handleRecommendServices: RequestHandler = async (req, res) => {
+  const { query: userQuery, model } = req.body as { query: string; model: SupportedModel };
+
+  if (!userQuery || !model) return res.status(400).json({ error: "query and model are required" });
+
+  const keyMap: Record<SupportedModel, string | undefined> = {
+    openai: process.env.OPENAI_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+    claude: process.env.ANTHROPIC_API_KEY,
+    groq:   process.env.GROQ_API_KEY,
+  };
+
+  if (!keyMap[model]) return res.status(400).json({ error: `API key for ${model} is not configured.` });
+
+  try {
+    // 1. Fetch all services for context
+    const servicesRes = await query(`
+      SELECT s.id, s.title, s.description, c.name as category 
+      FROM services s
+      LEFT JOIN service_categories c ON s.category_id = c.id
+    `);
+    
+    console.log(`[AI Recommend Services] Found ${servicesRes.rows.length} services in DB.`);
+
+    const servicesJson = JSON.stringify(servicesRes.rows.map(r => ({
+      id: r.id,
+      title: r.title,
+      description: (r.description || "").substring(0, 80) + ((r.description || "").length > 80 ? "..." : ""),
+      category: r.category || "General"
+    })));
+
+    const systemPrompt = `You are the ZamPortal AI Assistant. Identify the 3 most relevant services.
+Return ONLY a JSON object with this structure:
+{
+  "response": "A friendly greeting and explanation of how you can help.",
+  "recommendations": [
+    { "id": "UUID", "title": "SERVICE_TITLE", "reason": "Short reason" }
+  ]
+}
+
+Available Services:
+${servicesJson}`;
+
+    const userMsg = `User Request: "${userQuery}"`;
+    let raw = "";
+
+    try {
+      if (model === "openai") {
+        const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const completion = await client.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMsg }],
+          temperature: 0.5,
+        });
+        raw = completion.choices[0]?.message?.content || "";
+      } else if (model === "gemini") {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+        const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await geminiModel.generateContent(`${systemPrompt}\n\n${userMsg}`);
+        raw = result.response.text();
+      } else if (model === "claude") {
+        const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+        const message = await client.messages.create({
+          model: "claude-3-haiku-20240307", max_tokens: 1000, system: systemPrompt,
+          messages: [{ role: "user", content: userMsg }],
+        });
+        raw = message.content[0].type === "text" ? message.content[0].text : "";
+      } else if (model === "groq") {
+        const client = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+        const completion = await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMsg }],
+          temperature: 0.5,
+        });
+        raw = completion.choices[0]?.message?.content || "";
+      }
+    } catch (aiErr: any) {
+      console.error("[AI Recommend Services] Provider Error:", aiErr);
+      return res.json({
+        response: "I'm having some trouble connecting to my knowledge base right now. Please browse our services manually or try again in a moment.",
+        services: []
+      });
+    }
+
+    const aiResponseRaw = extractJson(raw);
+    let aiResponse: any = { response: "", recommendations: [] };
+    
+    try {
+      aiResponse = JSON.parse(aiResponseRaw);
+    } catch (parseErr) {
+      console.error("[AI Recommend Services] JSON Parse Error:", parseErr, "Raw was:", raw);
+      aiResponse.response = "I've analyzed your request and identified some services that might be relevant to you.";
+    }
+
+    if (!aiResponse.response) {
+      aiResponse.response = "I found some services that match your request. Here are the best options for you:";
+    }
+    
+    // 2. Fetch full details for the recommended services (by ID or Title)
+    const recommendedIds = Array.isArray(aiResponse.recommendations) 
+      ? aiResponse.recommendations.map((r: any) => r.id).filter((id: any) => id && typeof id === 'string')
+      : [];
+    
+    const recommendedTitles = Array.isArray(aiResponse.recommendations)
+      ? aiResponse.recommendations.map((r: any) => r.title).filter((t: any) => t && typeof t === 'string')
+      : [];
+
+    if (recommendedIds.length > 0 || recommendedTitles.length > 0) {
+      console.log("[AI Recommend Services] Fetching full details for:", { recommendedIds, recommendedTitles });
+      
+      const fullServicesRes = await query(`
+        SELECT s.*, c.name as category_name,
+          (SELECT p.slug FROM portals p 
+           LEFT JOIN portal_services ps ON p.id = ps.portal_id 
+           LEFT JOIN portal_service_forms f ON p.id = f.portal_id
+           WHERE ps.service_id = s.id OR f.service_id = s.id 
+           LIMIT 1) as portal_slug
+        FROM services s
+        LEFT JOIN service_categories c ON s.category_id = c.id
+        WHERE s.id::text = ANY($1::text[]) 
+           OR s.title = ANY($2::text[])
+           OR LOWER(s.title) = ANY(SELECT LOWER(t) FROM unnest($2::text[]) t)
+      `, [recommendedIds, recommendedTitles]);
+
+      console.log(`[AI Recommend Services] DB matched ${fullServicesRes.rows.length} services.`);
+
+      aiResponse.services = fullServicesRes.rows.map(row => {
+        const recommendation = Array.isArray(aiResponse.recommendations) 
+          ? aiResponse.recommendations.find((r: any) => 
+              (r.id && r.id === row.id) || 
+              (r.title && row.title.toLowerCase() === r.title.toLowerCase())
+            )
+          : null;
+
+        return {
+          id: row.id,
+          title: row.title,
+          icon: row.icon,
+          description: row.description || "",
+          slug: row.slug,
+          portal_slug: row.portal_slug,
+          category_name: row.category_name,
+          reason: recommendation?.reason || "Recommended based on your request."
+        };
+      });
+    } else {
+      aiResponse.services = [];
+    }
+
+    res.json(aiResponse);
+  } catch (err: any) {
+    console.error(`[AI Recommend Services] Final Catch Error:`, err);
+    res.json({
+      response: `I encountered an error while searching for services: ${err.message}`,
+      services: [],
+      debug_error: err.message
+    });
+  }
+};
+
+export const handleSuggestModules: RequestHandler = async (req, res) => {
+  const { model } = req.body as { model: SupportedModel };
+
+  if (!model) return res.status(400).json({ error: "model is required" });
+
+  const keyMap: Record<SupportedModel, string | undefined> = {
+    openai: process.env.OPENAI_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+    claude: process.env.ANTHROPIC_API_KEY,
+    groq:   process.env.GROQ_API_KEY,
+  };
+
+  if (!keyMap[model]) return res.status(400).json({ error: `API key for ${model} is not configured.` });
+
+  try {
+    const userMsg = `Suggest 3 advanced internal administrative modules for a national digital portal.`;
+    let raw = "";
+
+    if (model === "openai") {
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: MODULE_SUGGESTIONS_PROMPT }, { role: "user", content: userMsg }],
+        temperature: 0.8, max_tokens: 1000,
+      });
+      raw = completion.choices[0]?.message?.content || "";
+    } else if (model === "gemini") {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+      const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await geminiModel.generateContent(`${MODULE_SUGGESTIONS_PROMPT}\n\n${userMsg}`);
+      raw = result.response.text();
+    } else if (model === "claude") {
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const message = await client.messages.create({
+        model: "claude-3-haiku-20240307", max_tokens: 1000, system: MODULE_SUGGESTIONS_PROMPT,
+        messages: [{ role: "user", content: userMsg }],
+      });
+      raw = message.content[0].type === "text" ? message.content[0].text : "";
+    } else if (model === "groq") {
+      const client = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+      const completion = await client.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "system", content: MODULE_SUGGESTIONS_PROMPT }, { role: "user", content: userMsg }],
+        temperature: 0.8, max_tokens: 1000,
+      });
+      raw = completion.choices[0]?.message?.content || "";
+    }
+
+    const suggestions = JSON.parse(extractJson(raw));
+    res.json(suggestions);
+  } catch (err: any) {
+    console.error(`[AI Suggest Modules] ${model} error:`, err?.message || err);
+    res.status(500).json({ error: "Failed to generate module suggestions." });
+  }
+};
+
 export const handleGenerateModuleSchema: RequestHandler = async (req, res) => {
   const { prompt, model } = req.body as { prompt: string; model: SupportedModel };
 
@@ -449,5 +692,71 @@ export const handleGenerateModuleSchema: RequestHandler = async (req, res) => {
   } catch (err: any) {
     console.error(`[AI Generate Module] ${model} error:`, err?.message || err);
     res.status(500).json({ error: "Failed to generate module schema: " + (err.message || "Unknown error") });
+  }
+};
+
+const INSTITUTION_SYSTEM_PROMPT = `You are an expert government digital transformation consultant.
+Your goal is to help provision a new dedicated institutional portal.
+Given an institution name or high-level purpose, suggest:
+1. A professional mission description.
+2. A URL slug (lowercase, no spaces).
+3. A branding palette (Primary and Secondary hex colors).
+4. A list of relevant existing service titles that should be activated (choose from provided list if available, or suggest new ones).
+
+Output a JSON object with this structure:
+{
+  "description": "Professional mission statement",
+  "slug": "url-slug",
+  "primaryColor": "#hex",
+  "secondaryColor": "#hex",
+  "suggestedServices": ["Service Title 1", "Service Title 2"]
+}
+Return raw JSON only.`;
+
+export const handleGenerateInstitution: RequestHandler = async (req, res) => {
+  const { prompt, model } = req.body as { prompt: string; model: SupportedModel };
+
+  if (!prompt || !model) return res.status(400).json({ error: "prompt and model are required" });
+
+  try {
+    const userMsg = `Institution: ${prompt}`;
+    let raw = "";
+
+    if (model === "openai") {
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: INSTITUTION_SYSTEM_PROMPT }, { role: "user", content: userMsg }],
+        temperature: 0.7, max_tokens: 1000,
+      });
+      raw = completion.choices[0]?.message?.content || "";
+    } else if (model === "gemini") {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+      const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await geminiModel.generateContent(`${INSTITUTION_SYSTEM_PROMPT}\n\n${userMsg}`);
+      raw = result.response.text();
+    } else if (model === "groq") {
+      const client = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+      const completion = await client.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "system", content: INSTITUTION_SYSTEM_PROMPT }, { role: "user", content: userMsg }],
+        temperature: 0.7, max_tokens: 1000,
+      });
+      raw = completion.choices[0]?.message?.content || "";
+    }
+
+    const cleaned = extractJson(raw);
+    console.log("[AI Generate Institution] Raw output:", raw);
+    console.log("[AI Generate Institution] Cleaned output:", cleaned);
+    
+    try {
+      res.json(JSON.parse(cleaned));
+    } catch (parseErr) {
+      console.error("[AI Generate Institution] JSON Parse Error:", parseErr);
+      res.status(500).json({ error: "Failed to parse AI response" });
+    }
+  } catch (err: any) {
+    console.error(`[AI Generate Institution] ${model} error:`, err?.message || err);
+    res.status(500).json({ error: "Failed to generate institution config: " + (err.message || "Unknown error") });
   }
 };

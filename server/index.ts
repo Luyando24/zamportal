@@ -25,7 +25,8 @@ import {
 import {
   handleListUsers,
   handleCreateUser,
-  handleDeleteUser
+  handleDeleteUser,
+  handleAdminStats
 } from "./routes/admin";
 import {
   handleAdminListServices,
@@ -63,7 +64,15 @@ import {
 } from "./routes/forms";
 import { authenticate } from "./lib/auth_middleware";
 import { handleGetAiConfig as handleConfig } from "./routes/ai_config";
-import { handleGenerateForm, handleGenerateService, handleSuggestServices, handleGenerateModuleSchema } from "./routes/ai";
+import { 
+  handleGenerateForm, 
+  handleGenerateService, 
+  handleSuggestServices, 
+  handleSuggestModules, 
+  handleGenerateModuleSchema, 
+  handleGenerateInstitution,
+  handleRecommendServices
+} from "./routes/ai";
 
 export function createServer() {
   const app = express();
@@ -124,21 +133,22 @@ export function createServer() {
   app.delete("/api/portals/:id", handleDeletePortal);
   
   // Super Admin - User Management
-  app.get("/api/admin/users", handleListUsers);
-  app.post("/api/admin/users", handleCreateUser);
-  app.delete("/api/admin/users/:id", handleDeleteUser);
+  app.get("/api/admin/users", authenticate, handleListUsers);
+  app.post("/api/admin/users", authenticate, handleCreateUser);
+  app.delete("/api/admin/users/:id", authenticate, handleDeleteUser);
+  app.get("/api/admin/stats", authenticate, handleAdminStats);
   
   // Super Admin - Service Management
-  app.get("/api/admin/services", handleAdminListServices);
-  app.post("/api/admin/services", handleAdminCreateService);
-  app.post("/api/admin/services/full", handleAdminCreateFullService);
-  app.patch("/api/admin/services/:id", handleAdminUpdateService);
-  app.delete("/api/admin/services/:id", handleAdminDeleteService);
+  app.get("/api/admin/services", authenticate, handleAdminListServices);
+  app.post("/api/admin/services", authenticate, handleAdminCreateService);
+  app.post("/api/admin/services/full", authenticate, handleAdminCreateFullService);
+  app.patch("/api/admin/services/:id", authenticate, handleAdminUpdateService);
+  app.delete("/api/admin/services/:id", authenticate, handleAdminDeleteService);
   
   // Super Admin - Category Management
-  app.post("/api/admin/categories", handleAdminCreateCategory);
-  app.patch("/api/admin/categories/:id", handleAdminUpdateCategory);
-  app.delete("/api/admin/categories/:id", handleAdminDeleteCategory);
+  app.post("/api/admin/categories", authenticate, handleAdminCreateCategory);
+  app.patch("/api/admin/categories/:id", authenticate, handleAdminUpdateCategory);
+  app.delete("/api/admin/categories/:id", authenticate, handleAdminDeleteCategory);
   
   // Dynamic Forms & Applications
   app.get("/api/forms/:portalId/:serviceId", handleListServiceForms);
@@ -155,8 +165,11 @@ export function createServer() {
   // AI Agent routes
   app.get("/api/ai/config", handleConfig);
   app.post("/api/ai/suggest-services", authenticate, handleSuggestServices);
+  app.post("/api/ai/suggest-modules", authenticate, handleSuggestModules);
   app.post("/api/ai/generate-service", authenticate, handleGenerateService);
   app.post("/api/ai/generate-module", authenticate, handleGenerateModuleSchema);
+  app.post("/api/ai/generate-institution", authenticate, handleGenerateInstitution);
+  app.post("/api/ai/recommend-services", handleRecommendServices);
 
   return app;
 }

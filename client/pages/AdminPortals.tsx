@@ -13,7 +13,8 @@ import {
   Plus, Settings, Globe, Trash2, Layout, Palette, 
   Home, Server, Users, BarChart3, Shield, Menu, X, 
   Search, Bell, LogOut, ExternalLink, MoreVertical,
-  Activity, CheckCircle, AlertCircle, Clock, User, Database
+  Activity, CheckCircle, AlertCircle, Clock, User, Database,
+  Zap, Sparkles, Wand2
 } from "lucide-react";
 import { 
   AlertDialog, 
@@ -28,8 +29,10 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ThemeToggle from "@/components/navigation/ThemeToggle";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { cn } from "@/lib/utils";
 import ResourceManager from "@/components/admin/ResourceManager";
 
 interface Service {
@@ -76,6 +79,14 @@ const AdminPortals = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalApplications: 0,
+    approved: 0,
+    pending: 0,
+    actionRequired: 0
+  });
+  const [aiModel, setAiModel] = useState<string>(localStorage.getItem("admin_ai_model") || "groq");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
@@ -110,16 +121,38 @@ const AdminPortals = () => {
   useEffect(() => {
     fetchData();
     fetchModules();
-    if (activeTab === 'users') fetchUsers();
+    if (activeTab === 'users' || activeTab === 'overview') {
+      fetchUsers();
+      fetchDashboardStats();
+    }
     if (activeTab === 'services_mgmt') {
       fetchAdminServices();
       fetchCategories();
     }
   }, [activeTab, serviceSearch]);
 
+  const authFetch = async (url: string, init?: RequestInit) => {
+    const savedSession = localStorage.getItem('zamportal_session');
+    let token = null;
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        token = parsed.tokens?.accessToken;
+      } catch (e) {}
+    }
+
+    return fetch(url, {
+      ...init,
+      headers: {
+        ...init?.headers,
+        "Authorization": token ? `Bearer ${token}` : ""
+      }
+    });
+  };
+
   const fetchModules = async () => {
     try {
-      const res = await fetch("/api/modules");
+      const res = await authFetch("/api/modules");
       const data = await res.json();
       if (Array.isArray(data)) setModules(data);
     } catch (error) {
@@ -137,9 +170,66 @@ const AdminPortals = () => {
     }
   };
 
+  const fetchDashboardStats = async () => {
+    try {
+      const res = await authFetch("/api/admin/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setDashboardStats(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch dashboard stats", e);
+    }
+  };
+
+  const handleAIGenerate = async () => {
+    if (!formData.name) {
+      toast({ 
+        title: "Name Required", 
+        description: "Please enter an institution name first so the AI knows what to generate.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const res = await authFetch("/api/ai/generate-institution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: formData.name, model: aiModel })
+      });
+      
+      if (!res.ok) throw new Error("AI Generation failed");
+      
+      const data = await res.json();
+      
+      setFormData(prev => ({
+        ...prev,
+        description: data.description || prev.description,
+        slug: data.slug || prev.slug,
+        primaryColor: data.primaryColor || prev.primaryColor,
+        secondaryColor: data.secondaryColor || prev.secondaryColor,
+        selectedServices: services
+          .filter(s => (data.suggestedServices || []).some((ts: string) => s.title.toLowerCase().includes(ts.toLowerCase())))
+          .map(s => s.id)
+      }));
+
+      toast({ 
+        title: "AI Magic Applied!", 
+        description: `Successfully generated a configuration for ${formData.name}.`,
+      });
+    } catch (err) {
+      console.error("AI Generation Error:", err);
+      toast({ title: "AI Error", description: "Failed to generate portal configuration.", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const fetchAdminServices = async () => {
     try {
-      const res = await fetch(`/api/admin/services?search=${serviceSearch}`);
+      const res = await authFetch(`/api/admin/services?search=${serviceSearch}`);
       const data = await res.json();
       if (data.services) {
         setAdminServices(data.services);
@@ -171,7 +261,7 @@ const AdminPortals = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch("/api/admin/users");
+      const res = await authFetch("/api/admin/users");
       const data = await res.json();
       if (Array.isArray(data)) setUsers(data);
     } catch (error) {
@@ -315,10 +405,10 @@ const AdminPortals = () => {
   const navItems = [
     { id: "overview", label: "System Overview", icon: Home },
     { id: "portals", label: "Portal Management", icon: Globe },
-    { id: "services", label: "Global Services", icon: Server },
+    { id: "services", label: "Total Services", icon: Server },
     { id: "analytics", label: "System Analytics", icon: BarChart3 },
     { id: "security", label: "Security & Audit", icon: Shield },
-    { id: "settings", label: "Global Settings", icon: Settings },
+    { id: "settings", label: "Total Settings", icon: Settings },
   ];
 
   return (
@@ -425,13 +515,20 @@ const AdminPortals = () => {
               <Users className="h-5 w-5" />
               <span className="font-bold">User Management</span>
             </button>
+            <button 
+              onClick={() => setActiveTab("settings")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${activeTab === "settings" ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"}`}
+            >
+              <Settings className="h-5 w-5" />
+              <span className="font-bold">System Settings</span>
+            </button>
             
             <button 
               onClick={() => navigate("/admin/module-factory")}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400 mt-4 border border-blue-100 dark:border-blue-900/30 border-dashed"
             >
               <Database className="h-5 w-5" />
-              <span className="font-bold">Module Factory</span>
+              <span className="font-bold">Design Studio</span>
             </button>
 
             {modules.length > 0 && (
@@ -483,7 +580,6 @@ const AdminPortals = () => {
                   <h2 className="text-3xl font-extrabold tracking-tight">System Overview</h2>
                 </div>
                 <div className="flex gap-3">
-                  <Button variant="outline">Download Report</Button>
                   <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={() => setIsDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" /> Provision New Portal
                   </Button>
@@ -505,7 +601,7 @@ const AdminPortals = () => {
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Global Services</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Services</CardTitle>
                     <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-emerald-600"><Server className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
@@ -517,25 +613,25 @@ const AdminPortals = () => {
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">System Traffic</CardTitle>
-                    <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-purple-600"><Activity className="h-4 w-4" /></div>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Registered Users</CardTitle>
+                    <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-purple-600"><Users className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">128.4k</div>
+                    <div className="text-3xl font-bold">{users.length}</div>
                     <div className="flex items-center text-[10px] text-emerald-500 mt-2 font-bold uppercase tracking-widest">
-                      +14.2% Growth
+                      System Accounts
                     </div>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Security Status</CardTitle>
-                    <div className="p-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg text-orange-600"><Shield className="h-4 w-4" /></div>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Active Modules</CardTitle>
+                    <div className="p-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg text-orange-600"><Database className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">Secure</div>
+                    <div className="text-3xl font-bold">{modules.length}</div>
                     <div className="flex items-center text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-widest">
-                      <Clock className="h-3 w-3 mr-1" /> Last Audit: 2h ago
+                      <CheckCircle className="h-3 w-3 mr-1 text-emerald-500" /> Factory Built
                     </div>
                   </CardContent>
                 </Card>
@@ -604,29 +700,30 @@ const AdminPortals = () => {
 
                   <Card className="border-none shadow-sm bg-white dark:bg-slate-900">
                     <CardHeader>
-                      <CardTitle>System Performance</CardTitle>
+                      <CardTitle>Total Applications</CardTitle>
+                      <CardDescription>System-wide processing pipeline</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
-                          <span className="text-muted-foreground">Server Load</span>
-                          <span className="text-emerald-500">24%</span>
+                          <span className="text-muted-foreground">Approved & Completed</span>
+                          <span className="text-emerald-500">{dashboardStats.totalApplications > 0 ? Math.round((dashboardStats.approved / dashboardStats.totalApplications) * 100) : 0}%</span>
                         </div>
-                        <Progress value={24} className="h-1.5" />
+                        <Progress value={dashboardStats.totalApplications > 0 ? (dashboardStats.approved / dashboardStats.totalApplications) * 100 : 0} className="h-1.5 [&>div]:bg-emerald-500" />
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
-                          <span className="text-muted-foreground">Network Latency</span>
-                          <span className="text-emerald-500">12ms</span>
+                          <span className="text-muted-foreground">Pending Review</span>
+                          <span className="text-blue-500">{dashboardStats.totalApplications > 0 ? Math.round((dashboardStats.pending / dashboardStats.totalApplications) * 100) : 0}%</span>
                         </div>
-                        <Progress value={12} className="h-1.5" />
+                        <Progress value={dashboardStats.totalApplications > 0 ? (dashboardStats.pending / dashboardStats.totalApplications) * 100 : 0} className="h-1.5 [&>div]:bg-blue-500" />
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
-                          <span className="text-muted-foreground">Storage Used</span>
-                          <span className="text-orange-500">68%</span>
+                          <span className="text-muted-foreground">Action Required</span>
+                          <span className="text-orange-500">{dashboardStats.totalApplications > 0 ? Math.round((dashboardStats.actionRequired / dashboardStats.totalApplications) * 100) : 0}%</span>
                         </div>
-                        <Progress value={68} className="h-1.5" />
+                        <Progress value={dashboardStats.totalApplications > 0 ? (dashboardStats.actionRequired / dashboardStats.totalApplications) * 100 : 0} className="h-1.5 [&>div]:bg-orange-500" />
                       </div>
                     </CardContent>
                   </Card>
@@ -890,13 +987,81 @@ const AdminPortals = () => {
             </div>
           )}
 
+          {/* Settings Tab View */}
+          {activeTab === "settings" && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+              <div>
+                <h2 className="text-3xl font-black tracking-tight">System Settings</h2>
+                <p className="text-muted-foreground mt-2">Configure global platform parameters and AI integration.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Card className="border-none shadow-xl rounded-[32px] bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 pb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-2xl">
+                        <Zap className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">AI Integration</CardTitle>
+                        <CardDescription>Choose your preferred LLM provider</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-8 space-y-6">
+                    <div className="space-y-3">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Default AI Model</Label>
+                      <Select 
+                        value={aiModel} 
+                        onValueChange={(val) => {
+                          setAiModel(val);
+                          localStorage.setItem("admin_ai_model", val);
+                          toast({ title: "Settings Updated", description: `Default AI model set to ${val}` });
+                        }}
+                      >
+                        <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700">
+                          <SelectValue placeholder="Select model" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
+                          <SelectItem value="groq" className="py-3 rounded-xl">Groq (Llama 3.1) - Fastest</SelectItem>
+                          <SelectItem value="gemini" className="py-3 rounded-xl">Google Gemini 1.5 - Vision Capable</SelectItem>
+                          <SelectItem value="openai" className="py-3 rounded-xl">OpenAI GPT-4o - Precision</SelectItem>
+                          <SelectItem value="claude" className="py-3 rounded-xl">Anthropic Claude 3 - Creative</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground font-medium italic">
+                        All system-wide generation tasks (Portals, Services, Modules) will use this provider.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-xl rounded-[32px] bg-white dark:bg-slate-900 overflow-hidden opacity-50 grayscale pointer-events-none">
+                  <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 pb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl">
+                        <Shield className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">Platform Security</CardTitle>
+                        <CardDescription>Advanced access & audit controls</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <p className="text-sm text-center py-10 font-medium text-slate-400">Coming soon in the Enterprise release.</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
           {/* Placeholder for other tabs */}
-          {(activeTab === "analytics" || activeTab === "security" || activeTab === "settings") && (
+          {(activeTab === "analytics" || activeTab === "security") && (
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="p-6 bg-slate-100 dark:bg-slate-900 rounded-full mb-6 text-slate-400 animate-pulse">
                 {activeTab === "analytics" && <BarChart3 className="h-12 w-12" />}
                 {activeTab === "security" && <Shield className="h-12 w-12" />}
-                {activeTab === "settings" && <Settings className="h-12 w-12" />}
               </div>
               <h3 className="text-2xl font-bold uppercase tracking-widest">{activeTab} module</h3>
               <p className="text-muted-foreground mt-2 max-w-sm">This management module is currently being optimized for high-performance scale.</p>
@@ -920,13 +1085,24 @@ const AdminPortals = () => {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-bold uppercase tracking-widest text-slate-500">Institution Name</Label>
-                <Input 
-                  id="name" 
-                  placeholder="e.g. Ministry of Health" 
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="bg-slate-50 border-slate-200"
-                />
+                <div className="relative">
+                  <Input 
+                    id="name" 
+                    placeholder="e.g. Ministry of Health" 
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    className="bg-slate-50 border-slate-200 pr-12"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute right-1 top-1 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-8 w-8"
+                    onClick={handleAIGenerate}
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent animate-spin rounded-full" /> : <Wand2 className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="slug" className="text-sm font-bold uppercase tracking-widest text-slate-500">URL Slug</Label>
@@ -1066,7 +1242,7 @@ const AdminPortals = () => {
             }
             
             try {
-              const res = await fetch("/api/admin/users", {
+              const res = await authFetch("/api/admin/users", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(cleanData)

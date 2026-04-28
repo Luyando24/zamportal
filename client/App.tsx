@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import AiAssistant from "./pages/AiAssistant";
 import NotFound from "./pages/NotFound";
 import AuthLogin from "./pages/AuthLogin";
 import AdminLogin from "./pages/AdminLogin";
@@ -50,6 +51,7 @@ const App = () => {
                 <Route path="/login" element={<AuthLogin />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/register" element={<AuthRegister />} />
+                <Route path="/assistant" element={<AiAssistant />} />
                 
                 {/* Protected Citizen Dashboard */}
                 <Route path="/my-portal" element={<ProtectedRoute><MyPortal /></ProtectedRoute>} />
