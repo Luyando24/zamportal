@@ -57,7 +57,24 @@ const ServiceApplication = () => {
 
   useEffect(() => {
     fetchInitialData();
-  }, [portalSlug, serviceSlug]);
+    
+    // Check if we have saved form data after returning from login
+    const savedData = sessionStorage.getItem("pending_application");
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.portalSlug === portalSlug && parsed.serviceSlug === serviceSlug) {
+          setFormData(parsed.formData);
+          // We can't easily restore the exact step/form state without more logic, 
+          // but we restore the data fields.
+          toast.info("Welcome back! Your form progress has been restored.");
+        }
+        sessionStorage.removeItem("pending_application");
+      } catch (e) {
+        console.error("Failed to restore form data", e);
+      }
+    }
+  }, [portalSlug, serviceSlug, userId]);
 
   const fetchInitialData = async () => {
     try {
@@ -182,7 +199,22 @@ const ServiceApplication = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !selectedForm) return;
+    
+    if (!selectedForm) return;
+
+    if (!userId) {
+      // Save state to sessionStorage to restore after login
+      sessionStorage.setItem("pending_application", JSON.stringify({
+        portalSlug,
+        serviceSlug,
+        formData,
+        formId: selectedForm.id
+      }));
+      
+      toast.info("Identification required. Please sign in to submit your application.");
+      navigate("/login", { state: { from: location } });
+      return;
+    }
 
     // Prevent submitting empty forms
     if (!selectedForm.form_definition || selectedForm.form_definition.length === 0) {

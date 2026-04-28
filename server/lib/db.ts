@@ -8,14 +8,20 @@ const { Pool } = pg;
 // Use DATABASE_URL for Supabase/Production, fallback to individual params for local
 const connectionString = process.env.DATABASE_URL;
 
+if (connectionString) {
+  console.log("🐘 Connecting to Database via DATABASE_URL");
+} else {
+  console.warn("⚠️ DATABASE_URL not found. Falling back to individual DB parameters (might fail on Vercel).");
+}
+
 const pool = new Pool(
   connectionString 
     ? { 
         connectionString, 
         ssl: { rejectUnauthorized: false },
-        max: 20, // Maximum number of clients in the pool
-        idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
-        connectionTimeoutMillis: 10000, // How long to wait for a connection before timing out
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
       }
     : {
         host: process.env.DB_HOST || 'localhost',

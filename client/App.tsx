@@ -71,7 +71,7 @@ const App = () => {
                 <Route path="/dashboard/:portalSlug/define-service" element={<ProtectedRoute requireAdmin><ServiceDesigner /></ProtectedRoute>} />
                 <Route path="/dashboard/:portalSlug/designer/:serviceId/:formId" element={<ProtectedRoute requireAdmin><FormDesigner /></ProtectedRoute>} />
                 <Route path="/dashboard/:portalSlug/applications/:appId" element={<ProtectedRoute requireAdmin><ApplicationReview /></ProtectedRoute>} />
-                <Route path="/:portalSlug/apply/:serviceSlug" element={<ProtectedRoute><ServiceApplication /></ProtectedRoute>} />
+                <Route path="/:portalSlug/apply/:serviceSlug" element={<ServiceApplication />} />
                 <Route path="/:portalSlug" element={<PortalPublic />} />
                 <Route path="/:portalSlug/website" element={<PortalPublic />} />
                 
