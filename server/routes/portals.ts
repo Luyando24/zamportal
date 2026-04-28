@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
-import { query, transaction } from "../lib/db";
-import { supabaseAdmin } from "../lib/supabaseAdmin";
+import { query, transaction } from "../lib/db.js";
+import { supabaseAdmin } from "../lib/supabaseAdmin.js";
 
 // List all portals
 export const handleListPortals: RequestHandler = async (req, res) => {

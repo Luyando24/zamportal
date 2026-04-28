@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
-import { query, transaction } from "../lib/db";
+import { query, transaction } from "../lib/db.js";
 import { v4 as uuidv4 } from "uuid";
-import { supabaseAdmin } from "../lib/supabaseAdmin";
+import { supabaseAdmin } from "../lib/supabaseAdmin.js";
 
 // List all forms/sub-services for a service in a portal
 export const handleListServiceForms: RequestHandler = async (req, res) => {

@@ -1,16 +1,16 @@
-import "./lib/env";
+import "./lib/env.js";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { handleDemo } from "./routes/demo";
-import { handleLogin, handleRegister } from "./routes/auth";
+import { handleDemo } from "./routes/demo.js";
+import { handleLogin, handleRegister } from "./routes/auth.js";
 import { 
   handleListCategories, 
   handleListPopularServices, 
   handleSearchServices, 
   handleListApplications,
   handleGetUserProfile
-} from "./routes/mobile";
+} from "./routes/mobile.js";
 import {
   handleListPortals,
   handleGetPortalConfig,
@@ -21,20 +21,20 @@ import {
   handleRemovePortalService,
   handleDeletePortal,
   handleCreateFullService
-} from "./routes/portals";
+} from "./routes/portals.js";
 import {
   handleListUsers,
   handleCreateUser,
   handleDeleteUser,
   handleAdminStats
-} from "./routes/admin";
+} from "./routes/admin.js";
 import {
   handleAdminListServices,
   handleAdminCreateService,
   handleAdminUpdateService,
   handleAdminDeleteService,
   handleAdminCreateFullService
-} from "./routes/admin_services";
+} from "./routes/admin_services.js";
 import {
   handleListModules,
   handleCreateModule,
@@ -42,13 +42,13 @@ import {
   handleCreateModuleData,
   handleUpdateModuleData,
   handleDeleteModuleData
-} from "./routes/modules";
+} from "./routes/modules.js";
 import {
   handleAdminCreateCategory,
   handleAdminUpdateCategory,
   handleAdminDeleteCategory
-} from "./routes/admin_categories";
-import { query } from "./lib/db";
+} from "./routes/admin_categories.js";
+import { query } from "./lib/db.js";
 import {
   handleListServiceForms,
   handleGetFormById,
@@ -61,9 +61,9 @@ import {
   handleGetApplications,
   handleGetApplicationHistory,
   handleGetApplicationById
-} from "./routes/forms";
-import { authenticate } from "./lib/auth_middleware";
-import { handleGetAiConfig as handleConfig } from "./routes/ai_config";
+} from "./routes/forms.js";
+import { authenticate } from "./lib/auth_middleware.js";
+import { handleGetAiConfig as handleConfig } from "./routes/ai_config.js";
 import { 
   handleGenerateForm, 
   handleGenerateService, 
@@ -74,7 +74,7 @@ import {
   handleRecommendServices,
   handleCraftSuggestion,
   handleSubmitSuggestion
-} from "./routes/ai";
+} from "./routes/ai.js";
 
 export function createServer() {
   const app = express();

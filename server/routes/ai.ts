@@ -2,7 +2,7 @@ import { RequestHandler } from "express";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
-import { query } from "../lib/db";
+import { query } from "../lib/db.js";
 
 type SupportedModel = "openai" | "gemini" | "claude" | "groq";
 

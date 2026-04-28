@@ -6,8 +6,8 @@ import {
   RegisterStaffRequest as RegisterRequest,
   RegisterStaffResponse as RegisterResponse,
 } from "@shared/api";
-import { query } from "../lib/db";
-import { supabaseAdmin } from "../lib/supabaseAdmin";
+import { query } from "../lib/db.js";
+import { supabaseAdmin } from "../lib/supabaseAdmin.js";
 
 export const handleLogin: RequestHandler = async (req, res) => {
   try {

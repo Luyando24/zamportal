@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
-import { supabaseAdmin } from "../lib/supabaseAdmin";
-import { query } from "../lib/db";
+import { supabaseAdmin } from "../lib/supabaseAdmin.js";
+import { query } from "../lib/db.js";
 
 // List all users
 export const handleListUsers: RequestHandler = async (req, res) => {

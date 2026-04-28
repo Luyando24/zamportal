@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { query, transaction } from "../lib/db";
+import { query, transaction } from "../lib/db.js";
 
 // List all services for admin (with categories)
 export const handleAdminListServices: RequestHandler = async (req, res) => {

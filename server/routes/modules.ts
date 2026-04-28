@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { query } from "../lib/db";
+import { query } from "../lib/db.js";
 
 // List all dynamic modules
 export const handleListModules: RequestHandler = async (req, res) => {
