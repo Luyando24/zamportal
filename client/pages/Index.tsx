@@ -138,12 +138,9 @@ export default function Index() {
 
         <div className="relative pt-12 pb-20 sm:pt-32 sm:pb-48 flex items-center justify-center px-4 sm:px-12 z-10 w-full">
           <div className="text-center text-white w-full max-w-screen-xl mx-auto">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tighter drop-shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
-              Digital Access <br className="sm:hidden" /> to Services
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tighter drop-shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
+              Seamless Access to <br className="sm:hidden" /> Zambian Government Services
             </h1>
-            <p className="mt-4 sm:mt-8 text-sm sm:text-2xl text-white/60 sm:text-white/80 font-medium max-w-2xl mx-auto leading-relaxed drop-shadow-lg">
-              The official gateway to Zambian public services. <span className="hidden sm:inline">Fast, simple, and available 24/7.</span>
-            </p>
 
             <div className="mt-8 sm:mt-14 w-full max-w-4xl mx-auto">
               <div className="flex items-center justify-center gap-2 mb-6 sm:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
