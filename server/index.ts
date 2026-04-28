@@ -71,7 +71,9 @@ import {
   handleSuggestModules, 
   handleGenerateModuleSchema, 
   handleGenerateInstitution,
-  handleRecommendServices
+  handleRecommendServices,
+  handleCraftSuggestion,
+  handleSubmitSuggestion
 } from "./routes/ai";
 
 export function createServer() {
@@ -170,6 +172,8 @@ export function createServer() {
   app.post("/api/ai/generate-module", authenticate, handleGenerateModuleSchema);
   app.post("/api/ai/generate-institution", authenticate, handleGenerateInstitution);
   app.post("/api/ai/recommend-services", handleRecommendServices);
+  app.post("/api/ai/craft-suggestion", handleCraftSuggestion);
+  app.post("/api/ai/submit-suggestion", handleSubmitSuggestion);
 
   return app;
 }

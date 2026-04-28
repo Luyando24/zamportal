@@ -561,8 +561,8 @@ ${servicesJson}`;
           reason: recommendation?.reason || "Recommended based on your request."
         };
       });
-    } else {
-      aiResponse.services = [];
+    if (aiResponse.services.length === 0) {
+      aiResponse.canSuggest = true;
     }
 
     res.json(aiResponse);
@@ -758,5 +758,77 @@ export const handleGenerateInstitution: RequestHandler = async (req, res) => {
   } catch (err: any) {
     console.error(`[AI Generate Institution] ${model} error:`, err?.message || err);
     res.status(500).json({ error: "Failed to generate institution config: " + (err.message || "Unknown error") });
+  }
+};
+
+export const handleCraftSuggestion: RequestHandler = async (req, res) => {
+  const { query: userQuery, model } = req.body;
+  if (!userQuery) return res.status(400).json({ error: "query is required" });
+
+  const keyMap: Record<string, string | undefined> = {
+    openai: process.env.OPENAI_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+    claude: process.env.ANTHROPIC_API_KEY,
+    groq:   process.env.GROQ_API_KEY,
+  };
+
+  const selectedModel = model || "groq";
+  if (!keyMap[selectedModel]) return res.status(400).json({ error: `API key for ${selectedModel} is not configured.` });
+
+  try {
+    const prompt = `You are a professional assistant for ZamPortal (Zambian Government Portal). 
+    A user searched for a service but couldn't find it. Their query was: "${userQuery}".
+    Please craft a highly professional and compelling suggestion message to the portal administrators.
+    The message should explain:
+    1. What the service is.
+    2. Why it is important for Zambian citizens/businesses.
+    3. A brief pitch on how it improves digital governance.
+    
+    Return the response as a JSON object with:
+    - suggested_service: A concise name for the proposed service.
+    - crafted_message: The full professional message.
+    - description: A short 1-sentence summary.
+    
+    Response MUST be valid JSON.`;
+
+    let raw = "";
+    if (selectedModel === "groq") {
+      const client = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+      const completion = await client.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" }
+      });
+      raw = completion.choices[0].message?.content || "";
+    } else if (selectedModel === "openai") {
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" }
+      });
+      raw = completion.choices[0].message?.content || "";
+    }
+
+    res.json(JSON.parse(raw));
+  } catch (err: any) {
+    console.error("Craft Suggestion Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const handleSubmitSuggestion: RequestHandler = async (req, res) => {
+  const { user_query, suggested_service, description, crafted_message } = req.body;
+  
+  try {
+    await query(`
+      INSERT INTO service_suggestions (user_query, suggested_service, description, crafted_message)
+      VALUES ($1, $2, $3, $4)
+    `, [user_query, suggested_service, description, crafted_message]);
+    
+    res.json({ success: true, message: "Suggestion submitted successfully." });
+  } catch (err: any) {
+    console.error("Submit Suggestion Error:", err);
+    res.status(500).json({ error: err.message });
   }
 };

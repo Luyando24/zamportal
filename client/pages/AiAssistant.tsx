@@ -30,6 +30,11 @@ export default function AiAssistant() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [canSuggest, setCanSuggest] = useState(false);
+  const [isCrafting, setIsCrafting] = useState(false);
+  const [suggestion, setSuggestion] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   // Load conversations from localStorage
   useEffect(() => {
@@ -143,6 +148,8 @@ export default function AiAssistant() {
         timestamp: new Date().toISOString()
       };
 
+      setCanSuggest(!!data.canSuggest);
+
       const updatedMessages = [...messages, userMessage, assistantMessage];
       setMessages(updatedMessages);
 
@@ -151,7 +158,7 @@ export default function AiAssistant() {
         if (c.id === currentId) {
           return {
             ...c,
-            title: c.title === "New Conversation" ? text.substring(0, 30) + (text.length > 30 ? "..." : "") : c.title,
+            title: c.title === "New Conversation" ? text.substring(0, 30) + (text.length > 30 ? "..." : ""),
             messages: updatedMessages,
             updatedAt: new Date().toISOString()
           };
@@ -162,6 +169,57 @@ export default function AiAssistant() {
       console.error("Chat error:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleStartSuggestion = async () => {
+    const lastUserMessage = [...messages].reverse().find(m => m.role === "user");
+    if (!lastUserMessage) return;
+
+    setIsCrafting(true);
+    setCanSuggest(false);
+    const savedModel = localStorage.getItem("admin_ai_model") || "groq";
+
+    try {
+      const res = await fetch("/api/ai/craft-suggestion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: lastUserMessage.content, model: savedModel })
+      });
+      const data = await res.json();
+      setSuggestion(data);
+    } catch (err) {
+      console.error("Craft error:", err);
+    } finally {
+      setIsCrafting(false);
+    }
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!suggestion) return;
+    setIsSubmitting(true);
+    const lastUserMessage = [...messages].reverse().find(m => m.role === "user");
+
+    try {
+      await fetch("/api/ai/submit-suggestion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_query: lastUserMessage?.content || "Unknown",
+          suggested_service: suggestion.suggested_service,
+          description: suggestion.description,
+          crafted_message: suggestion.crafted_message
+        })
+      });
+      setHasSubmitted(true);
+      setTimeout(() => {
+        setSuggestion(null);
+        setHasSubmitted(false);
+      }, 3000);
+    } catch (err) {
+      console.error("Submit error:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -358,6 +416,73 @@ export default function AiAssistant() {
                 <div className="space-y-3 pt-2 w-full max-w-lg">
                   <div className="h-4 bg-white/5 rounded w-1/4" />
                   <div className="h-16 bg-white/5 rounded-3xl w-full" />
+                </div>
+              </div>
+            )}
+
+            {canSuggest && !isLoading && (
+              <div className="max-w-4xl mx-auto w-full py-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                <div className="bg-emerald-600/10 border border-emerald-500/20 rounded-[2.5rem] p-8 text-center backdrop-blur-3xl relative overflow-hidden">
+                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
+                   <Bot className="h-12 w-12 text-emerald-500 mx-auto mb-6" />
+                   <h3 className="text-xl font-black uppercase tracking-widest italic mb-2">Couldn't find what you need?</h3>
+                   <p className="text-white/60 text-base mb-8 max-w-lg mx-auto leading-relaxed">
+                     I've searched all government records but couldn't find a direct match. 
+                     Would you like me to help you **suggest this service** to the ZamPortal administrators?
+                   </p>
+                   <Button 
+                    onClick={handleStartSuggestion}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl h-14 px-10 font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-emerald-600/20"
+                   >
+                     Help me suggest this service
+                   </Button>
+                </div>
+              </div>
+            )}
+
+            {(isCrafting || suggestion) && (
+              <div className="max-w-4xl mx-auto w-full py-12 animate-in fade-in zoom-in-95 duration-700">
+                <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-10 backdrop-blur-3xl relative">
+                  {isCrafting ? (
+                    <div className="text-center py-10 space-y-6">
+                      <RefreshCw className="h-12 w-12 text-emerald-500 mx-auto animate-spin" />
+                      <h3 className="text-lg font-black uppercase tracking-widest animate-pulse">Crafting a professional message...</h3>
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      <div className="flex items-center gap-4 border-b border-white/5 pb-6">
+                        <div className="h-12 w-12 rounded-2xl bg-emerald-600 flex items-center justify-center">
+                          <FileSearch className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Service Proposal</h4>
+                          <h3 className="text-xl font-bold">{suggestion.suggested_service}</h3>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-white/20">AI-Crafted Message for Admin</label>
+                        <div className="bg-black/40 border border-white/5 p-8 rounded-3xl italic text-white/70 leading-relaxed font-medium">
+                          "{suggestion.crafted_message}"
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4">
+                        <p className="text-[10px] text-white/30 font-bold max-w-[200px]">This message will be sent to the Digital Transformation Department.</p>
+                        <Button 
+                          disabled={isSubmitting || hasSubmitted}
+                          onClick={handleFinalSubmit}
+                          className={cn(
+                            "rounded-2xl h-14 px-10 font-black uppercase tracking-[0.2em] text-[10px] transition-all",
+                            hasSubmitted ? "bg-green-600 hover:bg-green-600" : "bg-emerald-600 hover:bg-emerald-500"
+                          )}
+                        >
+                          {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
+                          {hasSubmitted ? "Thank You! Sent" : "Submit Suggestion"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
