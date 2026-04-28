@@ -112,7 +112,14 @@ export default function AiAssistant() {
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      // If we only have the initial messages, don't jump to the bottom immediately
+      // This prevents hiding the header on mobile initial load
+      const isInitialLoad = messages.length <= 2;
+      
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: isInitialLoad ? "auto" : "smooth"
+      });
     }
   }, [messages, isLoading]);
 
@@ -224,7 +231,7 @@ export default function AiAssistant() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050A0F] text-white flex font-sans overflow-hidden h-screen">
+    <div className="min-h-screen bg-[#050A0F] text-white flex font-sans overflow-hidden h-[100dvh]">
       {/* Overlay for mobile sidebar */}
       {isSidebarOpen && (
         <div 
@@ -515,6 +522,7 @@ export default function AiAssistant() {
                 </Button>
               </div>
             </form>
+            <div className="h-32 w-full" />
           </div>
         </main>
       </div>
