@@ -486,6 +486,9 @@ export default function AiAssistant() {
                 </div>
               </div>
             )}
+            
+            {/* Scroll Spacer to prevent content being hidden by fixed input bar */}
+            <div className="h-40 w-full flex-shrink-0" />
           </div>
 
           {/* Input Bar Overlay */}
