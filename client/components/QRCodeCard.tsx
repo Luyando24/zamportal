@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import type { User } from "@shared/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, EyeOff, Shield, Sparkles } from "lucide-react";
+import { Download, Eye, EyeOff, Shield, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -61,7 +61,7 @@ export default function QRCodeCard({ user, className }: Props) {
           
           {/* Sparkles icon for decoration */}
           <div className="absolute top-4 left-[180px] z-20">
-            <Sparkles className="sparkle-icon h-3 w-3 text-white/90" />
+            <Zap className="sparkle-icon h-3 w-3 text-white/90" />
           </div>
         </div>
 

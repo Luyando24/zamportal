@@ -29,11 +29,12 @@ export interface AuthTokens {
 export interface AuthSession {
   userId: UUID;
   role: UserRole;
+  portalSlug?: string;
   tokens: AuthTokens;
 }
 
 export interface LoginRequest {
-  email: string;
+  identifier: string; // email or nrc
   password: string;
 }
 
@@ -42,6 +43,7 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  nrc: NRC;
   role?: UserRole;
 }
 

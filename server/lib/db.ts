@@ -1,3 +1,4 @@
+import "./env";
 import pg from 'pg';
 import bcrypt from 'bcrypt';
 
@@ -9,13 +10,22 @@ const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool(
   connectionString 
-    ? { connectionString, ssl: { rejectUnauthorized: false } }
+    ? { 
+        connectionString, 
+        ssl: { rejectUnauthorized: false },
+        max: 20, // Maximum number of clients in the pool
+        idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
+        connectionTimeoutMillis: 10000, // How long to wait for a connection before timing out
+      }
     : {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432'),
         user: process.env.DB_USER || 'postgres',
         password: process.env.DB_PASSWORD || 'password',
         database: process.env.DB_NAME || 'flova_db',
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
       }
 );
 

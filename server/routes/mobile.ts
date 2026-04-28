@@ -13,6 +13,9 @@ export const handleListCategories: RequestHandler = async (req, res) => {
       description: row.description,
       slug: row.slug,
     }));
+    
+    // Cache categories for 1 hour
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     res.json(categories);
   } catch (error) {
     console.error('List categories error:', error);
@@ -22,16 +25,32 @@ export const handleListCategories: RequestHandler = async (req, res) => {
 
 export const handleListPopularServices: RequestHandler = async (req, res) => {
   try {
-    const result = await query('SELECT * FROM services WHERE is_popular = TRUE ORDER BY title');
-    const services: Service[] = result.rows.map((row: any) => ({
+    const result = await query(`
+      SELECT s.*, c.name as category_name,
+        (SELECT p.slug FROM portals p 
+         LEFT JOIN portal_services ps ON p.id = ps.portal_id 
+         LEFT JOIN portal_service_forms f ON p.id = f.portal_id
+         WHERE ps.service_id = s.id OR f.service_id = s.id 
+         LIMIT 1) as portal_slug
+      FROM services s
+      LEFT JOIN service_categories c ON s.category_id = c.id
+      WHERE s.is_popular = TRUE 
+      ORDER BY s.title
+    `);
+    const services = result.rows.map((row: any) => ({
       id: row.id,
       title: row.title,
       icon: row.icon,
       categoryId: row.category_id,
+      category_name: row.category_name,
       description: row.description,
       slug: row.slug,
+      portal_slug: row.portal_slug,
       isPopular: row.is_popular,
     }));
+    
+    // Cache popular services for 1 hour
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     res.json(services);
   } catch (error) {
     console.error('List popular services error:', error);
@@ -43,22 +62,35 @@ export const handleSearchServices: RequestHandler = async (req, res) => {
   try {
     const { query: searchTerm } = req.query;
     
-    if (!searchTerm) {
-      return res.status(400).json({ error: "Search term required" });
+    let sql = `
+      SELECT s.*, c.name as category_name,
+        (SELECT p.slug FROM portals p 
+         LEFT JOIN portal_services ps ON p.id = ps.portal_id 
+         LEFT JOIN portal_service_forms f ON p.id = f.portal_id
+         WHERE ps.service_id = s.id OR f.service_id = s.id 
+         LIMIT 1) as portal_slug
+      FROM services s
+      LEFT JOIN service_categories c ON s.category_id = c.id
+    `;
+    const params = [];
+    
+    if (searchTerm) {
+      sql += ' WHERE s.title ILIKE $1 OR s.description ILIKE $1';
+      params.push(`%${searchTerm}%`);
     }
     
-    const result = await query(
-      'SELECT * FROM services WHERE title ILIKE $1 OR description ILIKE $1 ORDER BY title',
-      [`%${searchTerm}%`]
-    );
+    sql += ' ORDER BY s.title';
+    const result = await query(sql, params);
     
-    const services: Service[] = result.rows.map((row: any) => ({
+    const services = result.rows.map((row: any) => ({
       id: row.id,
       title: row.title,
       icon: row.icon,
       categoryId: row.category_id,
+      category_name: row.category_name,
       description: row.description,
       slug: row.slug,
+      portal_slug: row.portal_slug,
       isPopular: row.is_popular,
     }));
     res.json(services);
@@ -70,10 +102,11 @@ export const handleSearchServices: RequestHandler = async (req, res) => {
 
 export const handleListApplications: RequestHandler = async (req, res) => {
   try {
-    const userId = req.session?.userId; // Assuming session middleware
+    const user = (req as any).user;
+    const userId = user?.id;
     
     if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Authentication required (MOBILE_ROUTE)" });
     }
     
     const result = await query(
@@ -100,10 +133,11 @@ export const handleListApplications: RequestHandler = async (req, res) => {
 
 export const handleGetUserProfile: RequestHandler = async (req, res) => {
   try {
-    const userId = req.session?.userId;
+    const user = (req as any).user;
+    const userId = user?.id;
     
     if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Authentication required (MOBILE_ROUTE)" });
     }
     
     const result = await query(
@@ -115,16 +149,18 @@ export const handleGetUserProfile: RequestHandler = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
     
-    const user = result.rows[0];
-    res.json({
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      phone: user.phone,
-      nrc: user.nrc,
-      role: user.role,
-    });
+    const dbUser = result.rows[0];
+    
+    const profile = {
+      id: dbUser.id,
+      email: dbUser.email,
+      firstName: dbUser.first_name,
+      lastName: dbUser.last_name,
+      phone: dbUser.phone,
+      nrc: dbUser.nrc,
+      role: dbUser.role,
+    };
+    res.json(profile);
   } catch (error) {
     console.error('Get user profile error:', error);
     res.status(500).json({ error: "Internal server error" });

@@ -20,11 +20,38 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 const USE_MOCK =
   (import.meta.env.VITE_USE_MOCK as string | undefined) === "true";
 
+import { supabase } from "./supabase";
+
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   try {
+    // Try to get token from our custom session storage first
+    const savedSession = localStorage.getItem('zamportal_session');
+    let token = null;
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        token = parsed.tokens?.accessToken;
+      } catch (e) {}
+    }
+    
+    // Fallback to supabase session if not in custom storage
+    if (!token) {
+      const { data: { session } } = await supabase.auth.getSession();
+      token = session?.access_token;
+    }
+
+    const headers: Record<string, string> = { 
+      "Content-Type": "application/json", 
+      ...(init?.headers as Record<string, string> || {}) 
+    };
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const res = await fetch(`${API_BASE}${path}`, {
       credentials: "include",
-      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+      headers,
       ...init,
     });
     
@@ -87,6 +114,10 @@ export const Api = {
   async getApplications(): Promise<Application[]> {
     if (USE_MOCK) return mock.getApplications();
     return http<Application[]>("/applications");
+  },
+  
+  async getApplicationHistory(id: string): Promise<any[]> {
+    return http<any[]>(`/applications/${id}/history`);
   },
 
   async getProfile(): Promise<any> {
