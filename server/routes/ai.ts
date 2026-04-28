@@ -561,6 +561,10 @@ ${servicesJson}`;
           reason: recommendation?.reason || "Recommended based on your request."
         };
       });
+    } else {
+      aiResponse.services = [];
+    }
+
     if (aiResponse.services.length === 0) {
       aiResponse.canSuggest = true;
     }
