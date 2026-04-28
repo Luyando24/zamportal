@@ -158,7 +158,7 @@ export default function AiAssistant() {
         if (c.id === currentId) {
           return {
             ...c,
-            title: c.title === "New Conversation" ? text.substring(0, 30) + (text.length > 30 ? "..." : ""),
+            title: c.title === "New Conversation" ? text.substring(0, 30) + (text.length > 30 ? "..." : "") : c.title,
             messages: updatedMessages,
             updatedAt: new Date().toISOString()
           };
