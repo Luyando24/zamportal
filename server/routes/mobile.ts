@@ -14,8 +14,8 @@ export const handleListCategories: RequestHandler = async (req, res) => {
       slug: row.slug,
     }));
     
-    // Cache categories for 1 hour
-    res.setHeader('Cache-Control', 'public, max-age=3600');
+    // Cache disabled for development/real-time updates
+    res.setHeader('Cache-Control', 'no-store');
     res.json(categories);
   } catch (error) {
     console.error('List categories error:', error);
@@ -51,8 +51,8 @@ export const handleListPopularServices: RequestHandler = async (req, res) => {
       isPopular: row.is_popular,
     }));
     
-    // Cache popular services for 1 hour
-    res.setHeader('Cache-Control', 'public, max-age=3600');
+    // Cache disabled for development/real-time updates
+    res.setHeader('Cache-Control', 'no-store');
     res.json(services);
   } catch (error) {
     console.error('List popular services error:', error);
