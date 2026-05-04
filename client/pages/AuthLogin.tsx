@@ -48,23 +48,25 @@ export default function AuthLogin() {
 
       if (!res.ok) throw new Error(data.error || "Login failed");
       
-      // Sync with Supabase client
-      if (data.tokens?.accessToken) {
-        await supabase.auth.setSession({
-          access_token: data.tokens.accessToken,
-          refresh_token: data.tokens.refreshToken || "",
-        });
+      const isInstitutional = ['admin', 'super_admin', 'institutional_admin', 'staff', 'employee'].includes(data.role);
+      
+      if (isInstitutional) {
+        if (data.role === 'admin' || data.role === 'super_admin') {
+          signOut();
+          throw new Error("Administrative accounts must use the Institutional Gateway. Please use the 'Admin Login' link below.");
+        }
+        
+        if (data.portalSlug) {
+          await signIn(data);
+          toast.success("Identity recognized. Redirecting to Institutional Portal...");
+          navigate(`/dashboard/${data.portalSlug}`, { replace: true });
+          return;
+        }
       }
 
-      signIn(data);
+      await signIn(data);
       toast.success("Welcome back to ZamPortal");
-      
-      if (data.role === 'admin') {
-        signOut(); // Don't let them stay logged in on the citizen portal
-        throw new Error("Administrative accounts must use the Institutional Gateway. Please use the 'Admin Login' link below.");
-      } else {
-        navigate(from, { replace: true });
-      }
+      navigate(from, { replace: true });
     } catch (e: any) {
       toast.error(e.message || "Invalid credentials");
     } finally {

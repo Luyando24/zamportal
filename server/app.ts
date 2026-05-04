@@ -41,7 +41,9 @@ import {
   handleListModuleData,
   handleCreateModuleData,
   handleUpdateModuleData,
-  handleDeleteModuleData
+  handleDeleteModuleData,
+  handleTogglePortalModule,
+  handleListMyModuleData
 } from "./routes/modules.js";
 import {
   handleAdminCreateCategory,
@@ -62,8 +64,13 @@ import {
   handleGetApplicationHistory,
   handleGetApplicationById
 } from "./routes/forms.js";
+import {
+  handleListPortalUsers,
+  handleUpdatePortalUser,
+  handleCreatePortalUser
+} from "./routes/portal_users.js";
 import { authenticate } from "./lib/auth_middleware.js";
-import { handleGetAiConfig as handleConfig } from "./routes/ai_config.js";
+import { handleGetAiConfig as handleConfig, handleUpdateAiConfig } from "./routes/ai_config.js";
 import { 
   handleGenerateForm, 
   handleGenerateService, 
@@ -71,12 +78,16 @@ import {
   handleSuggestModules, 
   handleGenerateModuleSchema, 
   handleGenerateInstitution,
+  handleGenerateComprehensiveServices,
   handleRecommendServices,
+
   handleCraftSuggestion,
-  handleSubmitSuggestion
+  handleSubmitSuggestion,
+  handleInstitutionalChat
 } from "./routes/ai.js";
 
 export function createServer() {
+  console.log("[Server] Initializing Express App...");
   const app = express();
 
   // Trust proxy for Vercel/proxies
@@ -90,7 +101,7 @@ export function createServer() {
   // Rate limiting to handle huge traffic and prevent abuse
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    max: 500, // Increased for intensive provisioning sessions
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     message: "Too many requests from this IP, please try again after 15 minutes"
@@ -130,9 +141,11 @@ export function createServer() {
   app.get("/api/modules", handleListModules);
   app.post("/api/modules", handleCreateModule);
   app.get("/api/modules/:slug/data", handleListModuleData);
-  app.post("/api/modules/:slug/data", handleCreateModuleData);
-  app.patch("/api/modules/data/:id", handleUpdateModuleData);
-  app.delete("/api/modules/data/:id", handleDeleteModuleData);
+  app.get("/api/my-modules/:slug/data", authenticate, handleListMyModuleData);
+  app.post("/api/modules/:slug/data", authenticate, handleCreateModuleData);
+  app.patch("/api/modules/data/:id", authenticate, handleUpdateModuleData);
+  app.delete("/api/modules/data/:id", authenticate, handleDeleteModuleData);
+  app.post("/api/modules/toggle", handleTogglePortalModule);
   app.post("/api/portals/:portalId/services/full", handleCreateFullService);
   app.delete("/api/portals/:portalId/services/:serviceId", handleRemovePortalService);
   app.delete("/api/portals/:id", handleDeletePortal);
@@ -167,16 +180,27 @@ export function createServer() {
   app.get("/api/applications/:id/history", authenticate, handleGetApplicationHistory);
   app.patch("/api/applications/:id/status", authenticate, handleUpdateApplicationStatus);
 
+  // Institutional User Management
+  app.get("/api/portals/:portalId/users", authenticate, handleListPortalUsers);
+  app.post("/api/portals/:portalId/users", authenticate, handleCreatePortalUser);
+  app.patch("/api/portals/users/:id", authenticate, handleUpdatePortalUser);
+
   // AI Agent routes
   app.get("/api/ai/config", handleConfig);
+  app.patch("/api/ai/config", authenticate, handleUpdateAiConfig);
   app.post("/api/ai/suggest-services", authenticate, handleSuggestServices);
   app.post("/api/ai/suggest-modules", authenticate, handleSuggestModules);
   app.post("/api/ai/generate-service", authenticate, handleGenerateService);
   app.post("/api/ai/generate-module", authenticate, handleGenerateModuleSchema);
   app.post("/api/ai/generate-institution", authenticate, handleGenerateInstitution);
+  app.post("/api/ai/generate-institution-comprehensive", authenticate, handleGenerateComprehensiveServices);
+  app.post("/api/ai/generate-comp", handleGenerateComprehensiveServices);
+
   app.post("/api/ai/recommend-services", handleRecommendServices);
+
   app.post("/api/ai/craft-suggestion", handleCraftSuggestion);
   app.post("/api/ai/submit-suggestion", handleSubmitSuggestion);
+  app.post("/api/ai/institutional-chat", authenticate, handleInstitutionalChat);
 
   return app;
 }

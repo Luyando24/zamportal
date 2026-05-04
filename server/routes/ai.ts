@@ -23,41 +23,61 @@ const buildUserMessage = (serviceName: string, prompt: string, existingForm?: an
   return `Service: ${serviceName}\n\nDescription: ${prompt}`;
 };
 
-const SYSTEM_PROMPT = `You are an expert government service form designer for Zambia's national digital services portal.
-Your goal is to generate optimal data collection schemas for Zambian citizens and businesses.
-When designing forms, anticipate and automatically include relevant Zambian context and standard requirements, such as:
-- National Registration Card (NRC) numbers for citizens
-- Taxpayer Identification Numbers (TPIN) (10 digits) for individuals and businesses
-- PACRA Registration Details for businesses
-- ZRA (Zambia Revenue Authority) and NAPSA details if applicable
-- Standard Zambian addresses (Province, District, Plot Number)
-- Financial values and fees should use Zambian Kwacha (ZMW)
-Given a description of a sub-service, output a JSON object (no markdown, no explanation, no code fences) with this exact structure:
+const SYSTEM_PROMPT = `You are a Senior Business Analyst and Lead UX Designer for Zambia's national digital services portal.
+Your goal is to generate "ready-to-use" data collection schemas that are detailed, accurate, and professional.
+
+CRITICAL DESIGN RULES:
+1. AUDIENCE: The primary audience is Zambian CITIZENS and BUSINESSES. Use respectful, clear, and action-oriented language.
+2. FIELD DEPTH: Generate 8-12 comprehensive fields per form. Don't just ask for a name; ask for all necessary regulatory and operational data (e.g. for a vehicle permit, ask for VIN, Engine Number, Year, Make, Model, Fuel Type, etc.).
+3. DROPDOWN DATA: For every field of type 'select', you MUST provide a comprehensive list of realistic options. If the field is 'Province', list all 10 Zambian provinces. If it is 'Identity Type', list NRC, Passport, Diplomatic ID. NEVER leave options empty or with placeholders like ["Option A"].
+4. VALIDATION: Include realistic 'validation_regex' where applicable (e.g., NRC format: 111111/11/1, TPIN: 10 digits).
+5. ZAMBIAN CONTEXT: Use local terminology (e.g., Plot Number, District, Chiefdom, Kwacha/ZMW).
+
+JSON STRUCTURE:
 {
-  "form_name": "Short, clear sub-service name",
+  "form_name": "Professional Sub-Service Name",
   "fields": [
-    { "label": "Field label", "type": "text", "required": true },
-    { "label": "Another field", "type": "select", "required": false, "options": ["Option A", "Option B"] }
+    { 
+      "label": "Field Label", 
+      "type": "text | textarea | number | date | file | select", 
+      "required": true,
+      "placeholder": "Helpful example entry",
+      "field_description": "Small helper text for the user",
+      "options": ["Complete", "List", "Of", "Options"],
+      "validation_regex": "Optional regex"
+    }
   ]
 }
-Valid types: text, textarea, number, date, file, select.
-The "options" array is only required when type is "select".
-Keep field labels concise, professional, and tailored to Zambian government standards. Return raw JSON only — no extra text.`;
+Return raw JSON only — no extra text, no markdown fences.`;
 
 /**
  * Strips markdown code fences that some LLMs wrap around JSON responses.
  * e.g. ```json\n{...}\n``` → {...}
  */
 function extractJson(raw: string): string {
-  // Find the first occurrence of '{' or '[' and the last occurrence of '}' or ']'
-  const firstBrace = raw.indexOf('{');
-  const lastBrace = raw.lastIndexOf('}');
+  // Strip comments (both // and /* */)
+  let clean = raw.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
   
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    return raw.substring(firstBrace, lastBrace + 1);
+  // Find the first occurrence of '{' or '[' and the last occurrence of '}' or ']'
+  const firstBrace = clean.indexOf('{');
+  const firstBracket = clean.indexOf('[');
+  let first = -1;
+  if (firstBrace !== -1 && firstBracket !== -1) first = Math.min(firstBrace, firstBracket);
+  else if (firstBrace !== -1) first = firstBrace;
+  else if (firstBracket !== -1) first = firstBracket;
+
+  const lastBrace = clean.lastIndexOf('}');
+  const lastBracket = clean.lastIndexOf(']');
+  let last = -1;
+  if (lastBrace !== -1 && lastBracket !== -1) last = Math.max(lastBrace, lastBracket);
+  else if (lastBrace !== -1) last = lastBrace;
+  else if (lastBracket !== -1) last = lastBracket;
+  
+  if (first !== -1 && last !== -1 && last > first) {
+    return clean.substring(first, last + 1);
   }
   
-  return raw.trim();
+  return clean.trim();
 }
 
 async function generateWithOpenAI(prompt: string, serviceName: string, existingForm?: any): Promise<GeneratedForm> {
@@ -196,28 +216,38 @@ interface GeneratedService {
   sub_services: GeneratedForm[];
 }
 
-const FULL_SERVICE_SYSTEM_PROMPT = `You are an expert government service designer for Zambia's national digital services portal.
-Your goal is to generate a comprehensive Service package, including its metadata and initial sub-services (data collection forms).
-CRITICAL: A "sub-service" is a completely distinct application workflow, NOT a section or tab of a single form. 
-For example, if the Service is "National Registration Card (NRC)", the sub-services should be complete independent use-cases like "New NRC Registration", "NRC Renewal", and "Report Lost NRC" (each containing ALL fields needed for that specific application, like personal info, witness details, etc). DO NOT split a single form into sections like "Basic Info" and "Additional Info".
-When designing forms, anticipate Zambian context (NRC, TPIN, PACRA, ZRA, ZMW).
-Given a description of a high-level service, output a JSON object (no markdown, no explanation) with this exact structure:
+const FULL_SERVICE_SYSTEM_PROMPT = `You are a Senior Business Systems Analyst specialized in Zambian e-Governance.
+Your goal is to generate a comprehensive, citizen-centric Service package.
+
+CRITICAL ANALYTICAL RULES:
+1. BUSINESS LOGIC: Deeply analyze the institution's purpose. If the service is "Land Titling", include fields for Survey Diagrams, Beacon Numbers, Traditional Authority details, etc. Ensure the forms capture EVERYTHING a regulatory body would need.
+2. FIELD DEPTH: Every sub-service form must contain 8-12 comprehensive fields.
+3. DROPDOWN DATA: Every 'select' type field MUST include a complete list of valid options. (e.g., if asking for 'Land Use Type', list ['Residential', 'Commercial', 'Agricultural', 'Industrial']).
+4. AUDIENCE: Use action-oriented, citizen-friendly language. (e.g., "Apply for Farm Input Subsidy").
+5. ZAMBIAN CONTEXT: Use local standards (NRC, TPIN, ZMW, Provinces, Districts).
+
+JSON STRUCTURE:
 {
-  "title": "Service Title",
-  "description": "Clear description of the service",
-  "category_slug": "business",
+  "title": "Professional Service Title",
+  "description": "Comprehensive citizen-facing description",
+  "category_slug": "business | identity | land | health | education | tax | agriculture",
   "sub_services": [
     {
-      "form_name": "Independent Sub-Service Name (e.g. New NRC Registration)",
+      "form_name": "Specific Sub-Service Workflow (e.g. New Passport Application)",
       "fields": [
-        { "label": "Field label", "type": "text", "required": true }
+        { 
+          "label": "Field Label", 
+          "type": "text | textarea | number | date | file | select", 
+          "required": true,
+          "options": ["Complete", "Option", "List"],
+          "placeholder": "Example",
+          "field_description": "Guidance text"
+        }
       ]
     }
   ]
 }
-Valid categories: identity, transport, business, land, health, education, tax, agriculture.
-Valid field types: text, textarea, number, date, file, select.
-Return raw JSON only — no extra text.`;
+Return raw JSON only — no extra text, no markdown fences.`;
 
 export const handleGenerateService: RequestHandler = async (req, res) => {
   const { prompt, model } = req.body as { prompt: string; model: SupportedModel };
@@ -284,17 +314,18 @@ export const handleGenerateService: RequestHandler = async (req, res) => {
 };
 
 const SUGGESTIONS_SYSTEM_PROMPT = `You are a visionary digital transformation consultant for the Government of Zambia.
-Your goal is to suggest innovative, high-impact government services that should be digitalized on the ZamPortal platform.
+Your goal is to suggest innovative, high-impact government services for CITIZENS and BUSINESSES.
+
+CRITICAL RULES:
+- Focus on citizen convenience and "one-stop" digital ease.
+- Use action verbs in titles: "Apply for...", "Register...", "Pay...", "Request...", "Check...".
+- AVOID administrative names like "Revenue Management" or "Education System". Use "Pay Taxes" or "Enroll for School" instead.
 
 Zambia's Digital Ambition:
 - Moving towards a paperless government.
 - Improving ease of doing business.
 - Enhancing citizen convenience through "one-stop" digital shops.
 - Driving financial inclusion and transparent revenue collection.
-
-CRITICAL RULE:
-- DO NOT suggest any services that are already mentioned in the "Existing Services" list.
-- Be creative! Think beyond basic registration. Think about permits, clearances, integrated social services, agricultural digital support, and trade facilitation.
 
 Return a JSON array (no markdown, no explanation) of exactly 4 objects with this structure:
 [{
@@ -303,13 +334,21 @@ Return a JSON array (no markdown, no explanation) of exactly 4 objects with this
 }]
 Return raw JSON only.`;
 
-const MODULE_SUGGESTIONS_PROMPT = `You are an expert system architect for the Government of Zambia.
-Your task is to suggest internal administrative systems or data registries that can be digitized.
+const MODULE_SUGGESTIONS_PROMPT = `You are a Principal Enterprise Architect for the Government of Zambia.
+Your goal is to suggest advanced INTERNAL ADMINISTRATIVE SYSTEMS and OPERATIONAL REGISTRIES for government institutions.
+
+CRITICAL RULES:
+- The audience is GOVERNMENT ADMINISTRATORS and STAFF.
+- Use professional, institutional language.
+- Focus on operational efficiency, resource tracking, and data management.
+- Examples of titles: "Fleet Management System", "Employee Registry", "Inventory Tracker", "Case Management Module", "Grant Disbursement Registry".
+- DO NOT suggest citizen-facing services here.
+
 Return a JSON array of 3 objects with this structure:
 [
-  { "title": "System Name", "desc": "Short description of what it tracks", "icon": "lucide-react icon name (e.g. truck, hospital, school, briefcase, package)" }
+  { "title": "System Name", "desc": "Professional operational description", "icon": "lucide-react icon name (e.g. truck, hospital, school, briefcase, package, shield, activity, users)" }
 ]
-Keep suggestions professional and tailored to Zambian public sector needs. Return raw JSON only.`;
+Return raw JSON only.`;
 
 export const RECOMMEND_SERVICES_PROMPT = `
 You are the ZamPortal AI Assistant. Your goal is to help Zambian citizens find the right government services.
@@ -329,35 +368,40 @@ Response Format (Strict JSON):
 
 export type SupportedModel = "openai" | "gemini" | "claude" | "groq";
 
-const MODULE_SCHEMA_SYSTEM_PROMPT = `You are a Principal System Architect. Design a detailed, enterprise-grade data schema for a management module.
+const MODULE_SCHEMA_SYSTEM_PROMPT = `You are a Principal System Architect designing an ENTERPRISE-GRADE internal management module.
+Your goal is to build a robust data schema for institutional operations and administrative tracking.
+
+CRITICAL ARCHITECTURE RULES:
+- Target audience: Government Staff and Administrators.
+- Use precise, professional terminology (e.g., "Assigned Officer", "Operational Status", "Audit Timestamp").
+- Always include fields for internal accountability (e.g., "assigned_to", "last_inspected_date", "priority_level").
+- The description should focus on operational impact and data integrity.
 
 OUTPUT RULES:
-- Return ONLY a raw JSON object. 
-- NO markdown, NO code fences, NO explanation.
-- Include 8-12 relevant fields.
-- Always include a 'status' field.
-- Include standard Zambian identifiers (NRC/TPIN) if applicable.
+- Return ONLY a raw JSON object. No markdown, no fences.
+- Include 8-12 comprehensive fields.
+- Always include a 'status' field (e.g., Pending, Active, Suspended, Archived).
+- Include standard Zambian identifiers (NRC/TPIN) if the module tracks personnel or entities.
 
 JSON STRUCTURE:
 {
-  "name": "Module Name (e.g., Fleet Management)",
+  "name": "Module Name (e.g., Fleet Management System)",
   "singular_entity": "Singular Entity (e.g., Vehicle)",
-  "description": "Professional operational description",
+  "description": "Comprehensive operational description including primary use-case",
   "icon": "lucide-react icon name",
   "fields": [
     {
       "name": "field_name (snake_case)",
-      "label": "Field Label",
-      "field_description": "Small helper text",
-      "placeholder": "Example text",
+      "label": "Professional Field Label",
+      "field_description": "Administrative helper text",
+      "placeholder": "Professional entry example",
       "type": "text | number | date | select | textarea | boolean",
       "required": true,
-      "validation_regex": "^[A-Z0-9]$ (Optional regex)",
-      "options": ["Opt 1", "Opt 2"] (Required only for 'select')
+      "validation_regex": "^[A-Z0-9]$ (Optional)",
+      "options": ["Opt 1", "Opt 2"]
     }
   ]
 }
-
 Return raw JSON only.`;
 
 export const handleSuggestServices: RequestHandler = async (req, res) => {
@@ -699,23 +743,24 @@ export const handleGenerateModuleSchema: RequestHandler = async (req, res) => {
   }
 };
 
-const INSTITUTION_SYSTEM_PROMPT = `You are an expert government digital transformation consultant.
-Your goal is to help provision a new dedicated institutional portal.
-Given an institution name or high-level purpose, suggest:
-1. A professional mission description.
-2. A URL slug (lowercase, no spaces).
-3. A branding palette (Primary and Secondary hex colors).
-4. A list of relevant existing service titles that should be activated (choose from provided list if available, or suggest new ones).
+const INSTITUTION_SYSTEM_PROMPT = `You are a Senior Strategic Consultant for the Zambian Government with deep knowledge of institutional mandates.
+Your goal is to provision a new institutional portal.
 
-Output a JSON object with this structure:
+MANDATE ACCURACY RULES:
+1. JURISDICTIONAL ISOLATION: Deeply analyze the institution name. Only describe duties that fall under its specific legal mandate. For example, "Ministry of Finance" handles national treasury, public debt, and budgeting, NOT company registration (PACRA) or tax collection (ZRA).
+2. COMPREHENSIVE MISSION: Write a professional, lengthy description (3-5 paragraphs) covering vision, core functions, and impact on national development.
+3. PUBLIC SUMMARY: Write a 1-2 sentence summary for the website header.
+
+Output a JSON object:
 {
-  "description": "Professional mission statement",
+  "description": "Lengthy mission statement focused EXCLUSIVELY on this institution's mandate",
+  "summary": "Concise summary for public display",
   "slug": "url-slug",
   "primaryColor": "#hex",
-  "secondaryColor": "#hex",
-  "suggestedServices": ["Service Title 1", "Service Title 2"]
+  "secondaryColor": "#hex"
 }
 Return raw JSON only.`;
+
 
 export const handleGenerateInstitution: RequestHandler = async (req, res) => {
   const { prompt, model } = req.body as { prompt: string; model: SupportedModel };
@@ -834,5 +879,223 @@ export const handleSubmitSuggestion: RequestHandler = async (req, res) => {
   } catch (err: any) {
     console.error("Submit Suggestion Error:", err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+const COMPREHENSIVE_INSTITUTION_PROMPT = `You are a Senior Strategic Consultant for the Zambian Government with deep knowledge of institutional mandates.
+Your goal is to provision a new institutional portal by architecting services that are EXCLUSIVELY within that institution's jurisdiction.
+
+ANALYTICAL DEPTH RULES:
+1. INSTITUTIONAL MANDATE: Perform a deep analysis of the institution's legal and operational mandate. Only generate services that this specific institution is responsible for.
+2. STRICT ISOLATION: Do NOT suggest services that belong to other well-known Zambian bodies. 
+   - If not PACRA, don't suggest business registration.
+   - If not ZRA, don't suggest tax payments.
+   - If not RTSA, don't suggest vehicle licensing.
+   - If not Zambia Police, don't suggest crime reporting, police clearance, or security certificates.
+   - If not Ministry of Finance, don't suggest treasury/budget services.
+   - For "Ministry of Finance", suggest: "Government Grant Applications", "Treasury Bill Subscriptions", "Financial Clearance for Contractors", "Public Procurement Registration", "External Debt Reporting", etc.
+3. QUANTITY: You MUST propose NOT LESS THAN 8 and up to 12 new high-impact services.
+4. BUSINESS LOGIC: Each service must include all necessary regulatory data fields.
+5. FIELD DEPTH: Every sub-service form must contain 8-12 comprehensive fields.
+6. DROPDOWN DATA: Every 'select' field MUST have a comprehensive list of realistic options. NEVER leave options empty.
+7. PUBLIC-FACING LANGUAGE: Use action verbs (Apply, Register, Pay).
+
+JSON STRUCTURE:
+{
+  "existingServiceIds": ["uuid-1", "uuid-2"],
+  "newServiceProposals": [
+    {
+      "title": "Professional Service Title",
+      "description": "Citizen-centric outcome description",
+      "category_slug": "identity | transport | business | land | health | education | tax | agriculture",
+      "sub_services": [
+        {
+          "form_name": "Independent Application Workflow (e.g. New Vehicle Registration)",
+          "fields": [
+            { 
+              "label": "Field Label", 
+              "type": "text | textarea | number | date | file | select", 
+              "required": true,
+              "options": ["Complete", "Option", "List"],
+              "placeholder": "Example",
+              "field_description": "Small helper text"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+Return raw JSON only — no extra text, no markdown fences.`;
+
+
+export const handleGenerateComprehensiveServices: RequestHandler = async (req, res) => {
+  const { name, description, model } = req.body as { name: string; description: string; model: SupportedModel };
+
+  if (!name || !model) return res.status(400).json({ error: "name and model are required" });
+
+  try {
+    // 1. Fetch all existing services for context
+    const servicesRes = await query(`
+      SELECT s.id, s.title, s.description, c.name as category 
+      FROM services s
+      LEFT JOIN service_categories c ON s.category_id = c.id
+    `);
+    
+    const servicesJson = JSON.stringify(servicesRes.rows.map(r => ({
+      id: r.id,
+      title: r.title,
+      description: (r.description || "").substring(0, 50) + "..."
+    })));
+
+    const userMsg = `Institution: ${name}\nDescription: ${description || 'N/A'}\n\nExisting Services:\n${servicesJson}`;
+    let raw = "";
+
+    if (model === "openai") {
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: COMPREHENSIVE_INSTITUTION_PROMPT }, { role: "user", content: userMsg }],
+        temperature: 0.7, max_tokens: 3000,
+      });
+      raw = completion.choices[0]?.message?.content || "";
+    } else if (model === "gemini") {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+      const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await geminiModel.generateContent(`${COMPREHENSIVE_INSTITUTION_PROMPT}\n\n${userMsg}`);
+      raw = result.response.text();
+    } else if (model === "groq") {
+
+      const client = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+      const completion = await client.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "system", content: COMPREHENSIVE_INSTITUTION_PROMPT }, { role: "user", content: userMsg }],
+        temperature: 0.7, max_tokens: 3000,
+      });
+      raw = completion.choices[0]?.message?.content || "";
+    }
+
+    const cleaned = extractJson(raw);
+    const result = JSON.parse(cleaned);
+
+    // Attach stable IDs to new service proposals
+    const { v4: uuidv4 } = await import("uuid");
+    if (result.newServiceProposals) {
+      result.newServiceProposals = result.newServiceProposals.map((s: any) => ({
+        ...s,
+        id: uuidv4(),
+        sub_services: (s.sub_services || []).map((sub: any) => ({
+          ...sub,
+          fields: (sub.fields || []).map((f: any) => ({ ...f, id: uuidv4() }))
+        }))
+      }));
+    }
+
+    res.json(result);
+  } catch (err: any) {
+    console.error(`[AI Generate Comprehensive] ${model} error:`, err?.message || err);
+    res.status(500).json({ error: "Failed to generate comprehensive services." });
+  }
+};
+
+export const handleInstitutionalChat: RequestHandler = async (req, res) => {
+  const { portalName, portalDescription, message, history, model } = req.body;
+  
+  if (!message || !portalName) {
+    return res.status(400).json({ error: "Message and portal context are required" });
+  }
+
+  const selectedModel = model || "openai";
+  const keyMap: Record<string, string | undefined> = {
+    openai: process.env.OPENAI_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+    claude: process.env.ANTHROPIC_API_KEY,
+    groq:   process.env.GROQ_API_KEY,
+  };
+
+  if (!keyMap[selectedModel]) {
+    return res.status(400).json({ error: `API key for ${selectedModel} is not configured.` });
+  }
+
+  const SYSTEM_PROMPT = `You are the "Assistant" for ${portalName}, a high-level digital expert integrated into Zambia's national service portal.
+  
+  INSTITUTIONAL CONTEXT:
+  Name: ${portalName}
+  Description: ${portalDescription || 'A Zambian government institution.'}
+  
+  YOUR ROLE:
+  1. Act as a senior assistant, technical expert, and administrative aide specialized EXCLUSIVELY in the domain of ${portalName}.
+  2. You help employees and administrators analyze complex documents (contracts, budget reports, legal frameworks), summarize internal papers, and draft professional government correspondence.
+  3. You are an expert in Zambian laws, regulations, and operational procedures relevant to this specific institution.
+  4. If a user asks something outside the scope of ${portalName}, politely redirect them to the relevant institution or explain that your expertise is focused on this institution.
+  5. Your tone is highly professional, authoritative yet helpful, and strictly aligned with Zambian government standards.
+  
+  CAPABILITIES:
+  - Document Analysis: Identify risks, key clauses, or financial discrepancies in text.
+  - Summarization: Condense lengthy reports into executive summaries.
+  - Drafting: Write memos, budget justifications, or policy drafts.
+  - Assistance: Provide strategic guidance on institutional processes.
+  
+  FORMATTING RULES:
+  - Use clear, descriptive HEADINGS (Markdown # or ##) to organize your response.
+  - Use distinct PARAGRAPHS for different ideas to ensure readability.
+  - Use BULLET POINTS or NUMBERED LISTS when listing requirements, steps, or features.
+  - Use **bold** text for important institutional terms, deadlines, or critical actions.
+  
+  Constraint: NEVER mention you are an AI model like GPT-4 or Claude. You are the ${portalName} Assistant.`;
+
+  try {
+    const messages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
+      { role: "user", content: message }
+    ];
+
+    let responseText = "";
+
+    if (selectedModel === "openai") {
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o", // Using 4o for document analysis capabilities
+        messages,
+        temperature: 0.7,
+      });
+      responseText = completion.choices[0]?.message?.content || "";
+    } else if (selectedModel === "gemini") {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+      const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      const chat = geminiModel.startChat({
+        history: (history || []).map((h: any) => ({
+          role: h.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: h.content }]
+        })),
+      });
+      const result = await chat.sendMessage(message);
+      responseText = result.response.text();
+    } else if (selectedModel === "groq") {
+      const client = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+      const completion = await client.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages,
+      });
+      responseText = completion.choices[0]?.message?.content || "";
+    } else if (selectedModel === "claude") {
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const message = await client.messages.create({
+        model: "claude-3-5-sonnet-20240620",
+        max_tokens: 4000,
+        system: SYSTEM_PROMPT,
+        messages: [
+          ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
+          { role: "user", content: message }
+        ],
+      });
+      responseText = message.content[0].type === "text" ? message.content[0].text : "";
+    }
+
+    res.json({ response: responseText });
+  } catch (err: any) {
+    console.error("Institutional AI Error:", err);
+    res.status(500).json({ error: "The AI advisor is temporarily unavailable. Please try again later." });
   }
 };

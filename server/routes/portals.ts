@@ -25,6 +25,8 @@ export const handleGetPortalConfig: RequestHandler = async (req, res) => {
     const portal = portalResult.rows[0];
 
     // Fetch services linked to this portal with their associated forms
+    // IMPORTANT: Only list services that either belong to this portal (s.portal_id = $1)
+    // or are global services (s.portal_id IS NULL) that have been explicitly added to this portal.
     const servicesResult = await query(`
       SELECT DISTINCT ON (s.id) s.*, c.name as category_name, c.slug as category_slug,
         (SELECT json_agg(json_build_object(
@@ -36,7 +38,8 @@ export const handleGetPortalConfig: RequestHandler = async (req, res) => {
       FROM services s
       LEFT JOIN portal_services ps ON s.id = ps.service_id
       LEFT JOIN service_categories c ON s.category_id = c.id
-      WHERE (ps.portal_id = $1 OR EXISTS (SELECT 1 FROM portal_service_forms f WHERE f.portal_id = $1 AND f.service_id = s.id))
+      WHERE (s.portal_id = $1 OR ps.portal_id = $1 OR EXISTS (SELECT 1 FROM portal_service_forms f WHERE f.portal_id = $1 AND f.service_id = s.id))
+      AND (s.portal_id IS NULL OR s.portal_id = $1)
     `, [portal.id]);
 
     res.json({
@@ -53,13 +56,13 @@ export const handleGetPortalConfig: RequestHandler = async (req, res) => {
 
 // Create a new portal
 export const handleCreatePortal: RequestHandler = async (req, res) => {
-  const { name, slug, description, logo_url, theme_config, service_ids, is_website_enabled } = req.body;
+  const { name, slug, description, summary, logo_url, theme_config, service_ids, is_website_enabled } = req.body;
   
   try {
     const result = await transaction(async (client) => {
       const portalResult = await client.query(
-        "INSERT INTO portals (name, slug, description, logo_url, theme_config, is_website_enabled) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-        [name, slug, description, logo_url, theme_config || {}, is_website_enabled !== undefined ? is_website_enabled : true]
+        "INSERT INTO portals (name, slug, description, summary, logo_url, theme_config, is_website_enabled) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+        [name, slug, description, summary, logo_url, theme_config || {}, is_website_enabled !== undefined ? is_website_enabled : true]
       );
       
       const portal = portalResult.rows[0];
@@ -85,7 +88,7 @@ export const handleCreatePortal: RequestHandler = async (req, res) => {
 // Update portal configuration
 export const handleUpdatePortal: RequestHandler = async (req, res) => {
   const { id } = req.params;
-  const { name, slug, description, logo_url, theme_config, service_ids, is_active, is_website_enabled } = req.body;
+  const { name, slug, description, summary, logo_url, theme_config, service_ids, is_active, is_website_enabled } = req.body;
 
   try {
     const result = await transaction(async (client) => {
@@ -94,14 +97,15 @@ export const handleUpdatePortal: RequestHandler = async (req, res) => {
         SET name = COALESCE($1, name),
             slug = COALESCE($2, slug),
             description = COALESCE($3, description),
-            logo_url = COALESCE($4, logo_url),
-            theme_config = COALESCE($5, theme_config),
-            is_active = COALESCE($6, is_active),
-            is_website_enabled = COALESCE($7, is_website_enabled),
+            summary = COALESCE($4, summary),
+            logo_url = COALESCE($5, logo_url),
+            theme_config = COALESCE($6, theme_config),
+            is_active = COALESCE($7, is_active),
+            is_website_enabled = COALESCE($8, is_website_enabled),
             updated_at = now()
-        WHERE id = $8
+        WHERE id = $9
         RETURNING *
-      `, [name, slug, description, logo_url, theme_config, is_active, is_website_enabled, id]);
+      `, [name, slug, description, summary, logo_url, theme_config, is_active, is_website_enabled, id]);
 
       if (portalResult.rows.length === 0) {
         throw new Error("Portal not found");
@@ -187,6 +191,7 @@ export const handleListAvailableServices: RequestHandler = async (req, res) => {
       FROM services s
       JOIN service_categories c ON s.category_id = c.id
       WHERE s.id NOT IN (SELECT service_id FROM portal_services WHERE portal_id = $1)
+      AND (s.portal_id IS NULL OR s.portal_id = $1)
       ORDER BY s.title ASC
     `, [portalId]);
     res.json(result.rows);
@@ -226,8 +231,8 @@ export const handleCreateFullService: RequestHandler = async (req, res) => {
       // 2. Insert into services table
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const serviceRes = await client.query(
-        "INSERT INTO services (title, slug, description, category_id, icon, is_popular) VALUES ($1, $2, $3, $4, 'file-text', false) RETURNING *",
-        [title, slug, description, categoryId]
+        "INSERT INTO services (title, slug, description, category_id, icon, is_popular, portal_id) VALUES ($1, $2, $3, $4, 'file-text', false, $5) RETURNING *",
+        [title, slug, description, categoryId, portalId]
       );
       const service = serviceRes.rows[0];
 

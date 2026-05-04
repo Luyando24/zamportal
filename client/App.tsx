@@ -26,6 +26,12 @@ import PortalPublic from "./pages/PortalPublic";
 import ServiceApplication from "./pages/ServiceApplication";
 import ApplicationReview from "./pages/ApplicationReview";
 import ApplicationStatus from "./pages/ApplicationStatus";
+import InstitutionalAiPage from "./pages/InstitutionalAiPage";
+
+import AdminProvisionPortal from "./pages/AdminProvisionPortal";
+import AdminPortalPreview from "./pages/AdminPortalPreview";
+
+
 import { useEffect } from "react";
 import { syncService } from "@/lib/sync";
 import { AuthProvider } from "./components/auth/AuthProvider";
@@ -61,6 +67,11 @@ const App = () => {
                 {/* Protected Super Admin */}
                 <Route path="/admin" element={<ProtectedRoute requireSuperAdmin><AdminPortals /></ProtectedRoute>} />
                 <Route path="/admin/portals" element={<ProtectedRoute requireSuperAdmin><AdminPortals /></ProtectedRoute>} />
+                <Route path="/admin/portals/provision" element={<ProtectedRoute requireSuperAdmin><AdminProvisionPortal /></ProtectedRoute>} />
+                <Route path="/admin/portals/preview" element={<ProtectedRoute requireSuperAdmin><AdminPortalPreview /></ProtectedRoute>} />
+
+
+
                 <Route path="/admin/define-service" element={<ProtectedRoute requireSuperAdmin><ServiceDesigner /></ProtectedRoute>} />
                 <Route path="/admin/module-factory" element={<ProtectedRoute requireSuperAdmin><ModuleFactory /></ProtectedRoute>} />
                 <Route path="/admin/module-preview" element={<ProtectedRoute requireSuperAdmin><ModulePreview /></ProtectedRoute>} />
@@ -71,6 +82,7 @@ const App = () => {
                 <Route path="/dashboard/:portalSlug/define-service" element={<ProtectedRoute requireAdmin><ServiceDesigner /></ProtectedRoute>} />
                 <Route path="/dashboard/:portalSlug/designer/:serviceId/:formId" element={<ProtectedRoute requireAdmin><FormDesigner /></ProtectedRoute>} />
                 <Route path="/dashboard/:portalSlug/applications/:appId" element={<ProtectedRoute requireAdmin><ApplicationReview /></ProtectedRoute>} />
+                <Route path="/dashboard/:portalSlug/ai" element={<ProtectedRoute requireAdmin><InstitutionalAiPage /></ProtectedRoute>} />
                 <Route path="/:portalSlug/apply/:serviceSlug" element={<ServiceApplication />} />
                 <Route path="/:portalSlug" element={<PortalPublic />} />
                 <Route path="/:portalSlug/website" element={<PortalPublic />} />

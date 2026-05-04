@@ -27,11 +27,13 @@ export const handleListPopularServices: RequestHandler = async (req, res) => {
   try {
     const result = await query(`
       SELECT s.*, c.name as category_name,
-        (SELECT p.slug FROM portals p 
-         LEFT JOIN portal_services ps ON p.id = ps.portal_id 
-         LEFT JOIN portal_service_forms f ON p.id = f.portal_id
-         WHERE ps.service_id = s.id OR f.service_id = s.id 
-         LIMIT 1) as portal_slug
+        COALESCE(
+          (SELECT slug FROM portals WHERE id = s.portal_id),
+          (SELECT p.slug FROM portals p 
+           LEFT JOIN portal_services ps ON p.id = ps.portal_id 
+           WHERE ps.service_id = s.id 
+           LIMIT 1)
+        ) as portal_slug
       FROM services s
       LEFT JOIN service_categories c ON s.category_id = c.id
       WHERE s.is_popular = TRUE 
@@ -64,11 +66,13 @@ export const handleSearchServices: RequestHandler = async (req, res) => {
     
     let sql = `
       SELECT s.*, c.name as category_name,
-        (SELECT p.slug FROM portals p 
-         LEFT JOIN portal_services ps ON p.id = ps.portal_id 
-         LEFT JOIN portal_service_forms f ON p.id = f.portal_id
-         WHERE ps.service_id = s.id OR f.service_id = s.id 
-         LIMIT 1) as portal_slug
+        COALESCE(
+          (SELECT slug FROM portals WHERE id = s.portal_id),
+          (SELECT p.slug FROM portals p 
+           LEFT JOIN portal_services ps ON p.id = ps.portal_id 
+           WHERE ps.service_id = s.id 
+           LIMIT 1)
+        ) as portal_slug
       FROM services s
       LEFT JOIN service_categories c ON s.category_id = c.id
     `;
@@ -109,15 +113,20 @@ export const handleListApplications: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "Authentication required (MOBILE_ROUTE)" });
     }
     
-    const result = await query(
-      'SELECT * FROM service_applications WHERE user_id = $1 ORDER BY created_at DESC',
-      [userId]
-    );
+    const result = await query(`
+      SELECT sa.*, f.form_name
+      FROM service_applications sa
+      LEFT JOIN portal_service_forms f ON sa.form_id = f.id
+      WHERE sa.user_id = $1 
+      ORDER BY sa.created_at DESC
+    `, [userId]);
     
     const applications: Application[] = result.rows.map((row: any) => ({
       id: row.id,
       userId: row.user_id,
       serviceId: row.service_id,
+      formId: row.form_id,
+      formName: row.form_name,
       status: row.status,
       formData: row.form_data,
       trackingNumber: row.tracking_number,

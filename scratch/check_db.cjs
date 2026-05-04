@@ -1,29 +1,32 @@
 const { Pool } = require('pg');
-require('dotenv').config({ path: '.env.local' });
+const dotenv = require('dotenv');
+const path = require('path');
+
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-async function checkForms() {
+async function check() {
+  const client = await pool.connect();
   try {
-    console.log('--- Portals ---');
-    const portals = await pool.query('SELECT id, name, slug FROM portals');
-    console.table(portals.rows);
-
-    console.log('\n--- Services ---');
-    const services = await pool.query('SELECT id, title, slug FROM services');
-    console.table(services.rows);
-
-    console.log('\n--- Portal Service Forms ---');
-    const forms = await pool.query('SELECT id, portal_id, service_id, form_name, form_slug FROM portal_service_forms');
-    console.table(forms.rows);
-  } catch (error) {
-    console.error('Query failed:', error);
+    const res = await client.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    console.log('Tables in public schema:');
+    console.log(res.rows.map(r => r.table_name).join(', '));
+  } catch (err) {
+    console.error(err);
   } finally {
+    client.release();
     await pool.end();
-    process.exit();
   }
 }
 
-checkForms();
+check();

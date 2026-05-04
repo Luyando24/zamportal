@@ -4,7 +4,7 @@ import { query, transaction } from "../lib/db.js";
 // List all services for admin (with categories)
 export const handleAdminListServices: RequestHandler = async (req, res) => {
   try {
-    const { search, category_id, limit = 50, offset = 0 } = req.query;
+    const { search, category_id, provider, limit = 50, offset = 0 } = req.query;
     
     let sql = `
       SELECT s.*, c.name as category_name 
@@ -22,6 +22,11 @@ export const handleAdminListServices: RequestHandler = async (req, res) => {
     if (category_id) {
       params.push(category_id);
       sql += ` AND s.category_id = $${params.length}`;
+    }
+
+    if (provider) {
+      params.push(`%${provider}%`);
+      sql += ` AND s.service_provider ILIKE $${params.length}`;
     }
     
     sql += ` ORDER BY s.title ASC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;

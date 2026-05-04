@@ -19,10 +19,11 @@ export default function AdminLogin() {
 
   const from = (location.state as any)?.from?.pathname || "/admin";
 
-  // Redirect if already logged in as admin
+  // Redirect if already logged in as authorized personnel
   React.useEffect(() => {
-    if (session && (session.role === 'admin' || session.role === 'super_admin' || session.role === 'institutional_admin')) {
-      if (session.role === 'institutional_admin' && session.portalSlug) {
+    const isAuthorized = session && ['admin', 'super_admin', 'institutional_admin', 'staff', 'employee'].includes(session.role);
+    if (isAuthorized) {
+      if ((session.role === 'institutional_admin' || session.role === 'staff' || session.role === 'employee') && session.portalSlug) {
         navigate(`/dashboard/${session.portalSlug}`, { replace: true });
       } else {
         navigate(from, { replace: true });
@@ -51,14 +52,16 @@ export default function AdminLogin() {
 
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      if (data.role !== 'admin' && data.role !== 'super_admin' && data.role !== 'institutional_admin') {
-        throw new Error("This portal is reserved for authorized administrators only.");
+      const isAuthorized = ['admin', 'super_admin', 'institutional_admin', 'staff', 'employee'].includes(data.role);
+      if (!isAuthorized) {
+        throw new Error("This portal is reserved for authorized departmental personnel only.");
       }
 
-      signIn(data);
+      await signIn(data);
       toast.success("Identity authenticated");
       
-      if (data.role === 'institutional_admin' && data.portalSlug) {
+      const shouldRedirectToPortal = ['institutional_admin', 'staff', 'employee'].includes(data.role) && data.portalSlug;
+      if (shouldRedirectToPortal) {
         navigate(`/dashboard/${data.portalSlug}`, { replace: true });
       } else {
         navigate(from, { replace: true });
@@ -93,7 +96,7 @@ export default function AdminLogin() {
         <CardHeader className="text-center pt-12 pb-8">
           <CardTitle className="text-3xl font-black tracking-tight text-white">Admin Authorization</CardTitle>
           <CardDescription className="text-slate-400 font-medium mt-2">
-            Enter your departmental credentials to continue
+            Enter your departmental or staff credentials to continue
           </CardDescription>
         </CardHeader>
         <CardContent className="px-10 pb-12">

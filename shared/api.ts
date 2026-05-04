@@ -5,7 +5,7 @@
 export type UUID = string;
 export type NRC = string; // Zambian National Registration Card number
 
-export type UserRole = "user" | "admin";
+export type UserRole = "user" | "admin" | "super_admin" | "institutional_admin" | "staff" | "employee";
 
 export interface User {
   id: UUID;
@@ -78,6 +78,8 @@ export interface Application {
   status: 'pending' | 'processing' | 'approved' | 'rejected' | 'completed';
   formData: Record<string, any>;
   trackingNumber?: string;
+  formId?: string;
+  formName?: string;
   createdAt: string;
   updatedAt: string;
 }

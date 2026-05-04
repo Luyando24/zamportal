@@ -96,8 +96,8 @@ export default function ModuleFactory() {
       const savedModel = localStorage.getItem("admin_ai_model") as AiModel;
       if (savedModel && models.includes(savedModel)) {
         setSelectedModel(savedModel);
-      } else if (models.includes("groq")) {
-        setSelectedModel("groq");
+      } else if (data.defaultModel && models.includes(data.defaultModel)) {
+        setSelectedModel(data.defaultModel);
       } else if (models.length > 0) {
         setSelectedModel(models[0]);
       }

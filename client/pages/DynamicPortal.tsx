@@ -14,11 +14,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ThemeToggle from "@/components/navigation/ThemeToggle";
 import { Progress } from "@/components/ui/progress";
+import { Api } from "@/lib/api";
 
 interface PortalData {
   name: string;
   slug: string;
   description: string;
+  summary: string;
   theme_config: {
     primaryColor: string;
     secondaryColor: string;
@@ -43,12 +45,10 @@ const DynamicPortal = () => {
   useEffect(() => {
     const fetchPortal = async () => {
       try {
-        const response = await fetch(`/api/portals/${portalSlug}`);
-        if (!response.ok) throw new Error("Portal not found");
-        const json = await response.json();
+        const json = await Api.getPortalConfig(portalSlug!);
         setData(json);
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message || "Portal not found");
       } finally {
         setLoading(false);
       }

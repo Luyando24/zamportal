@@ -34,6 +34,7 @@ import {
   Activity,
   ChevronRight,
   ExternalLink,
+  Loader2,
 
   Zap,
   Filter,
@@ -43,15 +44,17 @@ import {
   CreditCard as PaymentIcon,
   Info,
   Truck,
-  PackageCheck
+  PackageCheck,
+  Calendar
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -111,6 +114,8 @@ export default function MyPortal() {
       setLoading(false);
     }
   };
+
+  
   
   const fetchAppHistory = async (appId: string) => {
     try {
@@ -173,11 +178,11 @@ export default function MyPortal() {
     const matchesCategory = selectedCategory === 'All' || service.category_name === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: Home },
-    { id: 'services', label: 'Browse Services', icon: Briefcase },
-    { id: 'applications', label: 'My Applications', icon: FileText },
+    { id: 'services', label: 'Services', icon: Briefcase },
+    { id: 'applications', label: 'My Requests', icon: Clock },
+    { id: 'wallet', label: 'Digital Wallet', icon: CreditCard },
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];

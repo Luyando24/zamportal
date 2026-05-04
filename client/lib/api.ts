@@ -124,10 +124,99 @@ export const Api = {
     if (USE_MOCK) return mock.getProfile();
     return http<any>("/profile");
   },
+
+  async getPortalConfig(slug: string): Promise<any> {
+    return http<any>(`/portals/${slug}`);
+  },
+
+  async listPortalApplications(portalId: string): Promise<any[]> {
+    return http<any[]>(`/applications/portal/${portalId}`);
+  },
+
+  async listModules(portalId?: string): Promise<any[]> {
+    const url = portalId ? `/modules?portalId=${portalId}` : "/modules";
+    return http<any[]>(url);
+  },
+
+  async toggleModule(payload: { portalId: string, moduleSlug: string, enabled: boolean }): Promise<any> {
+    return http<any>("/modules/toggle", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async listAvailableServices(portalId: string): Promise<any[]> {
+    return http<any[]>(`/admin/portals/${portalId}/available-services`);
+  },
+
+  async activateService(portalId: string, serviceId: string): Promise<any> {
+    return http<any>(`/admin/portals/${portalId}/services/full`, {
+      method: "POST",
+      body: JSON.stringify({ serviceId }),
+    });
+  },
+
+  async removePortalService(portalId: string, serviceId: string): Promise<void> {
+    return http<void>(`/portals/${portalId}/services/${serviceId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async deleteFormDefinition(formId: string): Promise<void> {
+    return http<void>(`/forms/${formId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async getMyModuleData(slug: string): Promise<any[]> {
+    return http<any[]>(`/my-modules/${slug}/data`);
+  },
+
+  async listModuleData(slug: string, portalId?: string): Promise<any[]> {
+    const url = portalId ? `/modules/${slug}/data?portalId=${portalId}` : `/modules/${slug}/data`;
+    return http<any[]>(url);
+  },
+
+  async createModuleData(slug: string, data: any, portalId?: string): Promise<any> {
+    return http<any>(`/modules/${slug}/data`, {
+      method: "POST",
+      body: JSON.stringify({ data, portalId }),
+    });
+  },
+
+  async updateModuleData(id: string, data: any, portalId?: string): Promise<any> {
+    return http<any>(`/modules/data/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ data, portalId }),
+    });
+  },
+
+  async deleteModuleData(id: string): Promise<void> {
+    return http<void>(`/modules/data/${id}`, {
+      method: "DELETE",
+    });
+  },
   
   // Legacy support
   async registerStaff(payload: any): Promise<any> {
     return this.register(payload);
+  },
+
+  async institutionalChat(params: {
+    portalName: string;
+    portalDescription?: string;
+    message: string;
+    history?: any[];
+    model?: string;
+  }): Promise<{ response: string }> {
+    return http<{ response: string }>("/ai/institutional-chat", {
+      method: 'POST',
+      body: JSON.stringify(params)
+    });
+  },
+
+  async getAiConfig(): Promise<{ availableModels: string[]; defaultModel: string }> {
+    return http<{ availableModels: string[]; defaultModel: string }>("/ai/config");
   }
 };
 
@@ -188,7 +277,26 @@ const mock = {
   },
 
   async getProfile(): Promise<any> {
-    return null;
+    return http<any>("/profile");
+  },
+
+  // Institutional User Management
+  async listPortalUsers(portalId: string): Promise<any[]> {
+    return http<any[]>(`/portals/${portalId}/users`);
+  },
+
+  async updatePortalUser(id: string, updates: any): Promise<any> {
+    return http<any>(`/portals/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates)
+    });
+  },
+
+  async createPortalUser(portalId: string, userData: any): Promise<any> {
+    return http<any>(`/portals/${portalId}/users`, {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    });
   }
 };
 

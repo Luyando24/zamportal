@@ -107,7 +107,7 @@ export default function AuthRegister() {
       
       const loginData = await loginRes.json();
       if (loginRes.ok) {
-        signIn(loginData);
+        await signIn(loginData);
         navigate("/dashboard");
       } else {
         navigate("/login");

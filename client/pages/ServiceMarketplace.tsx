@@ -11,6 +11,8 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider";
 import ThemeToggle from "@/components/navigation/ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Api } from "@/lib/api";
+import { toast } from "sonner";
 
 const ServiceMarketplace = () => {
   const { portalSlug } = useParams();
@@ -29,25 +31,14 @@ const ServiceMarketplace = () => {
 
   const fetchData = async () => {
     try {
-      const portalRes = await fetch(`/api/portals/${portalSlug}`);
-      const portalData = await portalRes.json();
-      
-      // Security check: Institutional admins can only access marketplace for their own portal
-      const { session, isSuperAdmin } = useAuth();
-      const userPortalId = session?.user?.app_metadata?.portal_id;
-      if (!isSuperAdmin && userPortalId && userPortalId !== portalData.id) {
-        toast.error("Unauthorized: You do not have management rights for this portal");
-        navigate("/my-portal");
-        return;
-      }
-      
+      const portalData = await Api.getPortalConfig(portalSlug!);
       setPortal(portalData);
 
-      const servicesRes = await fetch(`/api/portals/${portalData.id}/available-services`);
-      const servicesData = await servicesRes.json();
+      const servicesData = await Api.listAvailableServices(portalData.id);
       if (Array.isArray(servicesData)) setAvailableServices(servicesData);
     } catch (error) {
       console.error("Marketplace fetch error:", error);
+      toast.error("Failed to load marketplace data");
     } finally {
       setLoading(false);
     }
@@ -56,19 +47,15 @@ const ServiceMarketplace = () => {
   const activateService = async (serviceId: string) => {
     setActivatingId(serviceId);
     try {
-      const res = await fetch(`/api/portals/${portal.id}/services`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ serviceId })
-      });
-      if (res.ok) {
-        // Refresh available services
-        const servicesRes = await fetch(`/api/portals/${portal.id}/available-services`);
-        const servicesData = await servicesRes.json();
-        if (Array.isArray(servicesData)) setAvailableServices(servicesData);
-      }
+      await Api.activateService(portal.id, serviceId);
+      toast.success("Service activated successfully");
+      
+      // Refresh available services
+      const servicesData = await Api.listAvailableServices(portal.id);
+      if (Array.isArray(servicesData)) setAvailableServices(servicesData);
     } catch (error) {
       console.error("Activation error:", error);
+      toast.error("Failed to activate service");
     } finally {
       setActivatingId(null);
     }

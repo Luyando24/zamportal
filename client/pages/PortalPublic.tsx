@@ -21,6 +21,7 @@ interface PortalData {
   name: string;
   slug: string;
   description: string;
+  summary: string;
   is_website_enabled: boolean;
   theme_config: {
     primaryColor: string;
@@ -51,6 +52,9 @@ const PortalPublic = () => {
     const fetchPortal = async () => {
       try {
         const response = await fetch(`/api/portals/${portalSlug}`);
+        if (response.status === 429) {
+          throw new Error("System is currently busy. Please refresh in a few seconds.");
+        }
         if (!response.ok) throw new Error("Portal not found");
         const json = await response.json();
         setData(json);
@@ -186,7 +190,7 @@ const PortalPublic = () => {
               <span style={{ color: primaryColor }}>Through Digital Excellence.</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-12 leading-relaxed font-medium">
-              {data.description || `Welcome to the official web portal for ${data.name}. We are dedicated to providing efficient, transparent, and accessible digital services to every citizen across the nation.`}
+              {data.summary || data.description || `Welcome to the official web portal for ${data.name}. We are dedicated to providing efficient, transparent, and accessible digital services to every citizen across the nation.`}
             </p>
             <div className="flex flex-wrap gap-4">
               <Button size="lg" className="h-16 px-10 rounded-2xl font-black text-lg shadow-2xl hover:scale-105 transition-all" style={{ backgroundColor: primaryColor }}>

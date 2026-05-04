@@ -106,21 +106,12 @@ const AdminPortals = () => {
     action: () => {}
   });
 
-  // Form State
-  const [formData, setFormData] = useState({
-    name: "",
-    slug: "",
-    description: "",
-    logo_url: "",
-    primaryColor: "#006400",
-    secondaryColor: "#FFD700",
-    selectedServices: [] as string[],
-    is_website_enabled: true
-  });
+
 
   useEffect(() => {
     fetchData();
     fetchModules();
+    fetchAiConfig();
     if (activeTab === 'users' || activeTab === 'overview') {
       fetchUsers();
       fetchDashboardStats();
@@ -130,6 +121,18 @@ const AdminPortals = () => {
       fetchCategories();
     }
   }, [activeTab, serviceSearch]);
+
+  const fetchAiConfig = async () => {
+    try {
+      const res = await fetch("/api/ai/config");
+      const data = await res.json();
+      if (data.defaultModel) {
+        setAiModel(data.defaultModel);
+      }
+    } catch (error) {
+      console.error("Failed to fetch AI config:", error);
+    }
+  };
 
   const authFetch = async (url: string, init?: RequestInit) => {
     const savedSession = localStorage.getItem('zamportal_session');
@@ -182,50 +185,7 @@ const AdminPortals = () => {
     }
   };
 
-  const handleAIGenerate = async () => {
-    if (!formData.name) {
-      toast({ 
-        title: "Name Required", 
-        description: "Please enter an institution name first so the AI knows what to generate.", 
-        variant: "destructive" 
-      });
-      return;
-    }
 
-    setIsGenerating(true);
-    try {
-      const res = await authFetch("/api/ai/generate-institution", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: formData.name, model: aiModel })
-      });
-      
-      if (!res.ok) throw new Error("AI Generation failed");
-      
-      const data = await res.json();
-      
-      setFormData(prev => ({
-        ...prev,
-        description: data.description || prev.description,
-        slug: data.slug || prev.slug,
-        primaryColor: data.primaryColor || prev.primaryColor,
-        secondaryColor: data.secondaryColor || prev.secondaryColor,
-        selectedServices: services
-          .filter(s => (data.suggestedServices || []).some((ts: string) => s.title.toLowerCase().includes(ts.toLowerCase())))
-          .map(s => s.id)
-      }));
-
-      toast({ 
-        title: "AI Magic Applied!", 
-        description: `Successfully generated a configuration for ${formData.name}.`,
-      });
-    } catch (err) {
-      console.error("AI Generation Error:", err);
-      toast({ title: "AI Error", description: "Failed to generate portal configuration.", variant: "destructive" });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const fetchAdminServices = async () => {
     try {
@@ -354,55 +314,8 @@ const AdminPortals = () => {
     }
   };
 
-  const handleCreatePortal = async () => {
-    try {
-      const response = await fetch("/api/portals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          slug: formData.slug,
-          description: formData.description,
-          logo_url: formData.logo_url,
-          theme_config: {
-            primaryColor: formData.primaryColor,
-            secondaryColor: formData.secondaryColor
-          },
-          service_ids: formData.selectedServices,
-          is_website_enabled: formData.is_website_enabled
-        })
-      });
-
-      if (response.ok) {
-        toast({ title: "Portal Created", description: `Successfully deployed ${formData.name}` });
-        setIsDialogOpen(false);
-        fetchData();
-        setFormData({
-          name: "",
-          slug: "",
-          description: "",
-          logo_url: "",
-          primaryColor: "#006400",
-          secondaryColor: "#FFD700",
-          selectedServices: [],
-          is_website_enabled: true
-        });
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to create portal", variant: "destructive" });
-    }
-  };
-
-  const toggleService = (serviceId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedServices: prev.selectedServices.includes(serviceId)
-        ? prev.selectedServices.filter(id => id !== serviceId)
-        : [...prev.selectedServices, serviceId]
-    }));
-  };
-
   const navItems = [
+
     { id: "overview", label: "System Overview", icon: Home },
     { id: "portals", label: "Portal Management", icon: Globe },
     { id: "services", label: "Total Services", icon: Server },
@@ -580,9 +493,10 @@ const AdminPortals = () => {
                   <h2 className="text-3xl font-extrabold tracking-tight">System Overview</h2>
                 </div>
                 <div className="flex gap-3">
-                  <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={() => setIsDialogOpen(true)}>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={() => navigate("/admin/portals/provision")}>
                     <Plus className="mr-2 h-4 w-4" /> Provision New Portal
                   </Button>
+
                 </div>
               </div>
 
@@ -692,9 +606,10 @@ const AdminPortals = () => {
                       <CardDescription className="text-emerald-100">Instantly deploy a standard government portal template.</CardDescription>
                     </CardHeader>
                     <CardContent className="relative z-10">
-                      <Button className="w-full bg-white text-emerald-950 hover:bg-emerald-50 font-bold" onClick={() => setIsDialogOpen(true)}>
+                      <Button className="w-full bg-white text-emerald-950 hover:bg-emerald-50 font-bold" onClick={() => navigate("/admin/portals/provision")}>
                         Launch Setup Wizard
                       </Button>
+
                     </CardContent>
                   </Card>
 
@@ -738,9 +653,10 @@ const AdminPortals = () => {
                 <div>
                   <h2 className="text-3xl font-extrabold tracking-tight">Institutional Portals</h2>
                 </div>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={() => setIsDialogOpen(true)}>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={() => navigate("/admin/portals/provision")}>
                   <Plus className="mr-2 h-4 w-4" /> Deploy New System
                 </Button>
+
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -822,7 +738,11 @@ const AdminPortals = () => {
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                   <h2 className="text-3xl font-black tracking-tight">System Users</h2>
+                  <p className="text-slate-500 font-medium mt-1">Manage administrative and citizen access across the platform.</p>
                 </div>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={() => setIsUserDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Add System User
+                </Button>
               </div>
               
               <Card className="border-none shadow-xl rounded-[32px] overflow-hidden bg-white dark:bg-slate-900">
@@ -1013,10 +933,22 @@ const AdminPortals = () => {
                       <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Default AI Model</Label>
                       <Select 
                         value={aiModel} 
-                        onValueChange={(val) => {
+                        onValueChange={async (val) => {
                           setAiModel(val);
                           localStorage.setItem("admin_ai_model", val);
-                          toast({ title: "Settings Updated", description: `Default AI model set to ${val}` });
+                          try {
+                            await authFetch("/api/ai/config", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ 
+                                defaultModel: val,
+                                availableModels: ["openai", "gemini", "groq", "claude"]
+                              })
+                            });
+                            toast({ title: "System Settings Synchronized", description: `Default AI model globally set to ${val}` });
+                          } catch (e) {
+                            toast({ title: "Sync Failed", description: "Could not persist settings to database.", variant: "destructive" });
+                          }
                         }}
                       >
                         <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700">
@@ -1071,146 +1003,7 @@ const AdminPortals = () => {
         </main>
       </div>
 
-      {/* Deployment Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Deploy Institution Portal</DialogTitle>
-            <DialogDescription className="text-lg">
-              Set up a new dedicated system linked to the ZamPortal core engine.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-8 py-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-bold uppercase tracking-widest text-slate-500">Institution Name</Label>
-                <div className="relative">
-                  <Input 
-                    id="name" 
-                    placeholder="e.g. Ministry of Health" 
-                    value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="bg-slate-50 border-slate-200 pr-12"
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute right-1 top-1 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-8 w-8"
-                    onClick={handleAIGenerate}
-                    disabled={isGenerating}
-                  >
-                    {isGenerating ? <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent animate-spin rounded-full" /> : <Wand2 className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slug" className="text-sm font-bold uppercase tracking-widest text-slate-500">URL Slug</Label>
-                <div className="flex items-center">
-                  <div className="h-10 px-3 flex items-center bg-slate-100 border border-r-0 rounded-l-md text-slate-400 font-mono text-sm">/</div>
-                  <Input 
-                    id="slug" 
-                    placeholder="health" 
-                    className="rounded-l-none bg-slate-50 border-slate-200"
-                    value={formData.slug}
-                    onChange={e => setFormData({...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
-                  />
-                </div>
-              </div>
-            </div>
 
-            <div className="flex items-center space-x-4 p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
-              <Switch 
-                id="website_enabled"
-                checked={formData.is_website_enabled}
-                onCheckedChange={(checked) => setFormData({...formData, is_website_enabled: checked})}
-              />
-              <div className="space-y-1">
-                <Label htmlFor="website_enabled" className="text-sm font-black text-emerald-900">Enable Public Website</Label>
-                <p className="text-xs text-emerald-600 font-medium italic">When enabled, citizens can visit /{formData.slug} to view services and institutional info.</p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-bold uppercase tracking-widest text-slate-500">Mission Description</Label>
-              <Textarea 
-                id="description" 
-                placeholder="Purpose of this portal..." 
-                className="bg-slate-50 border-slate-200 min-h-[100px]"
-                value={formData.description}
-                onChange={e => setFormData({...formData, description: e.target.value})}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="space-y-4">
-                <Label className="text-sm font-bold uppercase tracking-widest text-slate-500">Branding Palette</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-slate-400">Primary</p>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="color" 
-                        className="w-10 h-10 p-1 bg-transparent border-none cursor-pointer" 
-                        value={formData.primaryColor}
-                        onChange={e => setFormData({...formData, primaryColor: e.target.value})}
-                      />
-                      <Input value={formData.primaryColor} readOnly className="font-mono text-[10px] h-10" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-slate-400">Secondary</p>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="color" 
-                        className="w-10 h-10 p-1 bg-transparent border-none cursor-pointer" 
-                        value={formData.secondaryColor}
-                        onChange={e => setFormData({...formData, secondaryColor: e.target.value})}
-                      />
-                      <Input value={formData.secondaryColor} readOnly className="font-mono text-[10px] h-10" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center justify-center border-l pl-6">
-                <p className="text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-widest">Brand Preview</p>
-                <div className="flex gap-2">
-                  <div className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center text-white font-bold text-2xl animate-float-slow" style={{ backgroundColor: formData.primaryColor }}>{formData.name[0] || '?'}</div>
-                  <div className="w-16 h-16 rounded-2xl shadow-lg opacity-50" style={{ backgroundColor: formData.secondaryColor }}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label className="text-sm font-bold uppercase tracking-widest text-slate-500">Activated Services</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 border rounded-2xl p-6 bg-slate-50 dark:bg-slate-900 border-slate-200">
-                {services.map(service => (
-                  <div key={service.id} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700 shadow-sm">
-                    <Checkbox 
-                      id={service.id} 
-                      checked={formData.selectedServices.includes(service.id)}
-                      onCheckedChange={() => toggleService(service.id)}
-                      className="border-emerald-500 data-[state=checked]:bg-emerald-600"
-                    />
-                    <label htmlFor={service.id} className="text-sm font-bold leading-none cursor-pointer">
-                      {service.title}
-                      <span className="block text-[10px] text-muted-foreground font-medium mt-1">{service.category_name}</span>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="bg-slate-50 -mx-6 -mb-6 p-6 border-t rounded-b-lg">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl px-8 h-12">Cancel Deployment</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 rounded-xl px-8 h-12 font-bold" onClick={handleCreatePortal}>
-              Generate & Deploy System
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* User Registration Dialog */}
       <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>

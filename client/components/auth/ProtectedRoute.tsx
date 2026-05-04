@@ -14,7 +14,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAdmin = false,
   requireSuperAdmin = false
 }) => {
-  const { session, loading, isAdmin, isSuperAdmin } = useAuth();
+  const { session, loading, isAdmin, isSuperAdmin, isStaff } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -38,7 +38,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/" replace />;
   }
 
-  if (requireAdmin && !isAdmin) {
+  if (requireAdmin && !isAdmin && !isStaff) {
     // Redirect to unauthorized or home
     return <Navigate to="/" replace />;
   }

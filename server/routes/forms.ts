@@ -72,7 +72,7 @@ export const handleSaveFormDefinition: RequestHandler = async (req, res) => {
 
 // Submit an application
 export const handleSubmitApplication: RequestHandler = async (req, res) => {
-  const { user_id, service_id, portal_id, form_data, attachments } = req.body;
+  const { user_id, service_id, portal_id, form_id, form_data, attachments } = req.body;
   const tracking_number = `ZP-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
   
   try {
@@ -103,9 +103,9 @@ export const handleSubmitApplication: RequestHandler = async (req, res) => {
     const application = await transaction(async (client) => {
       // 1. Create the application
       const appResult = await client.query(
-        `INSERT INTO service_applications (user_id, service_id, portal_id, form_data, tracking_number)
-         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [user_id, service_id, portal_id, JSON.stringify(form_data), tracking_number]
+        `INSERT INTO service_applications (user_id, service_id, portal_id, form_id, form_data, tracking_number)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [user_id, service_id, portal_id, form_id, JSON.stringify(form_data), tracking_number]
       );
       
       const app = appResult.rows[0];
@@ -140,7 +140,7 @@ export const handleGetApplications: RequestHandler = async (req, res) => {
       `SELECT sa.*, s.title as service_title, f.form_name
        FROM service_applications sa
        JOIN services s ON sa.service_id = s.id
-       LEFT JOIN portal_service_forms f ON sa.service_id = f.service_id AND sa.portal_id = f.portal_id
+       LEFT JOIN portal_service_forms f ON sa.form_id = f.id
        WHERE sa.user_id = $1
        ORDER BY sa.created_at DESC`,
       [user.id]
@@ -160,7 +160,7 @@ export const handleListPortalApplications: RequestHandler = async (req, res) => 
        FROM service_applications a
        JOIN users u ON a.user_id = u.id
        JOIN services s ON a.service_id = s.id
-       LEFT JOIN portal_service_forms f ON a.service_id = f.service_id AND a.portal_id = f.portal_id
+       LEFT JOIN portal_service_forms f ON a.form_id = f.id
        WHERE a.portal_id = $1
        ORDER BY a.created_at DESC`,
       [portalId]
@@ -180,7 +180,7 @@ export const handleGetApplicationById: RequestHandler = async (req, res) => {
        FROM service_applications a
        JOIN users u ON a.user_id = u.id
        JOIN services s ON a.service_id = s.id
-       LEFT JOIN portal_service_forms f ON a.service_id = f.service_id AND a.portal_id = f.portal_id
+       LEFT JOIN portal_service_forms f ON a.form_id = f.id
        WHERE a.id = $1`,
       [id]
     );
