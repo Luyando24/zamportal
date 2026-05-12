@@ -393,7 +393,7 @@ const PortalPublic = () => {
                 onClick={handleSwitchAccount}
                 className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-600/20"
               >
-                Logout & Login as Citizen
+                Logout
               </Button>
               <Button 
                 variant="ghost" 

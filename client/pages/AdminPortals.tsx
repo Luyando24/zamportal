@@ -383,7 +383,7 @@ const AdminPortals = () => {
                   onClick={() => signOut()}
                   className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-sm font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                 >
-                  <LogOut className="h-4 w-4" /> Terminate Session
+                  <LogOut className="h-4 w-4" /> Logout
                 </button>
               </div>
             </div>

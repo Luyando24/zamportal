@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,16 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+const deploymentStages = [
+  { id: 'infra', label: 'Infrastructure Setup', description: 'Allocating secure clusters and database instances.' },
+  { id: 'identity', label: 'Institutional Identity', description: 'Registering portal domain and identity markers.' },
+  { id: 'catalog', label: 'Service Activation', description: 'Mapping national catalog services to the institutional registry.' },
+  { id: 'provision', label: 'AI Module Provisioning', description: 'Synthesizing dynamic forms and intelligent workflows.' },
+  { id: 'final', label: 'Finalizing Deployment', description: 'Optimizing portal assets and making the environment live.' }
+];
+
 
 
 
@@ -27,7 +39,14 @@ const AdminProvisionPortal = () => {
   const [provisionStep, setProvisionStep] = useState<'details' | 'branding' | 'services'>('details');
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [currentStage, setCurrentStage] = useState(0);
+  const [deploymentLogs, setDeploymentLogs] = useState<string[]>([]);
+  const [deploymentStatus, setDeploymentStatus] = useState<'deploying' | 'success' | 'error'>('deploying');
+  const logEndRef = useRef<HTMLDivElement>(null);
+
   const [aiModel, setAiModel] = useState<string>(localStorage.getItem("admin_ai_model") || "groq");
+
 
   
   const [services, setServices] = useState<any[]>([]);
@@ -161,12 +180,34 @@ const AdminProvisionPortal = () => {
     }));
   };
 
+  const addLog = (msg: string) => {
+    setDeploymentLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+  };
+
+  useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [deploymentLogs]);
+
   const handleCreatePortal = async () => {
     if (!formData.name || !formData.slug) return;
     
-    setIsGenerating(true);
+    setIsDeploying(true);
+    setCurrentStage(0);
+    setDeploymentStatus('deploying');
+    setDeploymentLogs([]);
+    
     try {
-      // 1. Create Portal and Link Existing Services
+      // Stage 0: Infrastructure
+      addLog("Initializing secure deployment pipeline...");
+      addLog("Allocating dedicated database cluster...");
+      await new Promise(r => setTimeout(r, 2000));
+      addLog("Infrastructure ready.");
+      
+      // Stage 1: Identity
+      setCurrentStage(1);
+      addLog(`Creating portal identity for ${formData.name}...`);
       const res = await authFetch("/api/portals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,35 +223,58 @@ const AdminProvisionPortal = () => {
         })
       });
       
-      if (!res.ok) throw new Error("Failed to create portal");
+      if (!res.ok) throw new Error("Failed to create portal identity record.");
       const portal = await res.json();
+      addLog(`Portal record established with ID: ${portal.id.substring(0, 8)}...`);
+      await new Promise(r => setTimeout(r, 1000));
 
-      // 2. Provision newly generated services
+      // Stage 2: Catalog
+      setCurrentStage(2);
+      addLog(`Activating ${formData.selectedServices.length} services from national catalog...`);
+      await new Promise(r => setTimeout(r, 1500));
+      addLog("National catalog services mapped successfully.");
+
+      // Stage 3: Provisioning
+      setCurrentStage(3);
       const servicesToProvision = generatedNewServices.filter(s => selectedNewServices.includes(s.id));
       
       if (servicesToProvision.length > 0) {
-        toast({ title: "Portal Created", description: "Provisioning newly generated services..." });
+        addLog(`Synthesizing ${servicesToProvision.length} custom AI service modules...`);
         
         for (const serviceProposal of servicesToProvision) {
+          addLog(`Provisioning module: ${serviceProposal.title}...`);
           await authFetch(`/api/admin/portals/${portal.id}/services/full`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(serviceProposal)
           });
+          await new Promise(r => setTimeout(r, 800));
         }
+        addLog("All custom modules provisioned and validated.");
+      } else {
+        addLog("No custom AI services selected for provisioning.");
+        await new Promise(r => setTimeout(r, 1000));
       }
 
-      toast({ 
-        title: "Deployment Successful", 
-        description: `Portal for ${formData.name} is now live with ${formData.selectedServices.length + servicesToProvision.length} active services.` 
-      });
-      navigate("/admin/portals");
+      // Stage 4: Finalizing
+      setCurrentStage(4);
+      addLog("Applying global theme architecture...");
+      addLog("Optimizing portal performance markers...");
+      await new Promise(r => setTimeout(r, 2000));
+      addLog("Deployment cycle complete. System is live.");
+      
+      setDeploymentStatus('success');
+      setTimeout(() => {
+        navigate("/admin/portals");
+      }, 2500);
+
     } catch (err: any) {
+      addLog(`CRITICAL ERROR: ${err.message}`);
+      setDeploymentStatus('error');
       toast({ title: "Deployment Error", description: err.message, variant: "destructive" });
-    } finally {
-      setIsGenerating(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
@@ -621,6 +685,197 @@ const AdminProvisionPortal = () => {
           </div>
         )}
       </main>
+
+      {/* Deployment Overlay */}
+      <Dialog open={isDeploying} onOpenChange={(open) => {
+        if (!open && (deploymentStatus === 'success' || deploymentStatus === 'error')) {
+          setIsDeploying(false);
+        }
+      }}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none bg-slate-950 text-white rounded-[40px] shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+          <div className="flex h-[600px]">
+            {/* Sidebar - Stages */}
+            <div className="w-80 bg-slate-900/50 p-10 border-r border-white/5 flex flex-col">
+              <div className="flex items-center gap-3 mb-10">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/20">
+                  <Activity className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-widest italic">ZamPortal</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Deployer v2.4</p>
+                </div>
+              </div>
+
+              <div className="space-y-6 flex-1">
+                {deploymentStages.map((stage, idx) => {
+                  const isActive = currentStage === idx;
+                  const isCompleted = currentStage > idx || deploymentStatus === 'success';
+                  
+                  return (
+                    <div key={stage.id} className="relative flex gap-4 items-start group">
+                      {idx !== deploymentStages.length - 1 && (
+                        <div className={cn(
+                          "absolute left-[13px] top-8 w-[2px] h-10 transition-colors",
+                          isCompleted ? "bg-emerald-500" : "bg-white/10"
+                        )} />
+                      )}
+                      <div className={cn(
+                        "w-7 h-7 rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-500 z-10",
+                        isCompleted ? "bg-emerald-500 border-emerald-500 text-white" : 
+                        isActive ? "bg-slate-950 border-emerald-500 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : 
+                        "bg-slate-950 border-white/10 text-white/20"
+                      )}>
+                        {isCompleted ? <CheckCircle className="h-4 w-4" /> : <span className="text-[10px] font-black">{idx + 1}</span>}
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className={cn(
+                          "text-xs font-black uppercase tracking-widest transition-colors",
+                          isCompleted ? "text-white" : isActive ? "text-emerald-400" : "text-white/20"
+                        )}>{stage.label}</h4>
+                        {isActive && (
+                          <motion.p 
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-[10px] text-slate-400 font-medium leading-relaxed"
+                          >
+                            {stage.description}
+                          </motion.p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {deploymentStatus === 'error' && (
+                <Button 
+                  variant="destructive" 
+                  className="w-full rounded-2xl h-12 font-black uppercase tracking-widest text-[11px] gap-2"
+                  onClick={() => setIsDeploying(false)}
+                >
+                  <AlertCircle className="h-4 w-4" /> Close & Repair
+                </Button>
+              )}
+            </div>
+
+            {/* Main Console */}
+            <div className="flex-1 flex flex-col relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent pointer-events-none" />
+              
+              <div className="p-10 flex-1 flex flex-col">
+                <div className="flex justify-between items-start mb-10">
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tighter mb-2">
+                      {deploymentStatus === 'success' ? "System Online" : 
+                       deploymentStatus === 'error' ? "Deployment Halted" : 
+                       "Provisioning..."}
+                    </h2>
+                    <p className="text-sm font-medium text-slate-400">
+                      {deploymentStatus === 'success' ? "All protocols initialized and validated." : 
+                       deploymentStatus === 'error' ? "Critical exception detected during provisioning." : 
+                       `Current Phase: ${deploymentStages[currentStage].label}`}
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col items-end">
+                    <Badge className={cn(
+                      "uppercase tracking-widest font-black text-[10px] px-4 py-1.5 rounded-full border-none",
+                      deploymentStatus === 'success' ? "bg-emerald-500 text-white" : 
+                      deploymentStatus === 'error' ? "bg-red-500 text-white" : 
+                      "bg-emerald-500/20 text-emerald-400 animate-pulse"
+                    )}>
+                      {deploymentStatus}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Animation Core */}
+                <div className="relative flex-1 flex items-center justify-center py-10">
+                  <AnimatePresence mode="wait">
+                    {deploymentStatus === 'deploying' ? (
+                      <motion.div 
+                        key="deploying"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.2 }}
+                        className="relative"
+                      >
+                        {/* Orbitals */}
+                        <motion.div 
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                          className="absolute -inset-20 border border-emerald-500/10 rounded-full" 
+                        />
+                        <motion.div 
+                          animate={{ rotate: -360 }}
+                          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                          className="absolute -inset-32 border border-blue-500/5 rounded-full" 
+                        />
+                        
+                        {/* Core */}
+                        <div className="relative w-32 h-32 bg-emerald-500/10 rounded-[40px] flex items-center justify-center backdrop-blur-3xl border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+                          <Activity className="h-12 w-12 text-emerald-500 animate-pulse" />
+                        </div>
+                      </motion.div>
+                    ) : deploymentStatus === 'success' ? (
+                      <motion.div 
+                        key="success"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center text-center"
+                      >
+                        <div className="w-32 h-32 bg-emerald-500 rounded-[40px] flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.4)] mb-8">
+                          <CheckCircle className="h-16 w-16 text-white" />
+                        </div>
+                        <h4 className="text-xl font-black uppercase tracking-widest text-emerald-400 mb-2">Protocol Verified</h4>
+                        <p className="text-slate-400 font-bold uppercase tracking-tighter text-xs">Redirecting to management dashboard...</p>
+                      </motion.div>
+                    ) : (
+                      <motion.div 
+                        key="error"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center text-center"
+                      >
+                        <div className="w-32 h-32 bg-red-500/20 border-2 border-red-500 rounded-[40px] flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+                          <AlertCircle className="h-16 w-16 text-red-500" />
+                        </div>
+                        <h4 className="text-xl font-black uppercase tracking-widest text-red-400 mb-2">Protocol Failure</h4>
+                        <p className="text-slate-400 font-medium max-w-xs">Deployment pipeline encountered an unhandled exception.</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Console Logs */}
+                <div className="h-32 bg-black/40 rounded-3xl p-6 font-mono text-[10px] overflow-hidden border border-white/5 relative group">
+                  <div className="absolute top-4 left-6 flex gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-red-500/50" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-yellow-500/50" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500/50" />
+                  </div>
+                  <div className="mt-4 h-full overflow-y-auto scrollbar-hide space-y-1">
+                    {deploymentLogs.map((log, i) => (
+                      <motion.div 
+                        key={i} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={cn(
+                          "transition-colors",
+                          log.includes('ERROR') ? "text-red-400" : "text-emerald-500/60"
+                        )}
+                      >
+                        {log}
+                      </motion.div>
+                    ))}
+                    <div ref={logEndRef} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

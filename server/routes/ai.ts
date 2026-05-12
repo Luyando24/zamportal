@@ -607,11 +607,13 @@ export const handleRecommendServices: RequestHandler = async (req, res) => {
       
       const fullServicesRes = await query(`
         SELECT s.*, c.name as category_name,
-          (SELECT p.slug FROM portals p 
-           LEFT JOIN portal_services ps ON p.id = ps.portal_id 
-           LEFT JOIN portal_service_forms f ON p.id = f.portal_id
-           WHERE ps.service_id = s.id OR f.service_id = s.id 
-           LIMIT 1) as portal_slug
+          COALESCE(
+            (SELECT slug FROM portals WHERE id = s.portal_id),
+            (SELECT p.slug FROM portals p 
+             LEFT JOIN portal_services ps ON p.id = ps.portal_id 
+             WHERE ps.service_id = s.id 
+             LIMIT 1)
+          ) as portal_slug
         FROM services s
         LEFT JOIN service_categories c ON s.category_id = c.id
         WHERE s.id::text = ANY($1::text[]) 
