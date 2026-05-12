@@ -49,7 +49,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <ThemeProvider attribute="class" defaultTheme="dark">
+        <ThemeProvider attribute="class" defaultTheme="light">
           <AuthProvider>
             <BrowserRouter>
               <Routes>
