@@ -370,7 +370,7 @@ export default function AiAssistant() {
   };
 
   return (
-    <div className="bg-[#212121] text-[#ececec] flex font-sans overflow-hidden h-[100dvh] text-sm">
+    <div className="fixed inset-0 bg-[#212121] text-[#ececec] flex font-sans overflow-hidden text-sm">
       {/* Overlay for mobile sidebar */}
       {isSidebarOpen && (
         <div 
@@ -464,7 +464,7 @@ export default function AiAssistant() {
       {/* Main Container */}
       <div className="flex-1 flex flex-col relative overflow-hidden bg-[#212121]">
         {/* Header */}
-        <header className="absolute top-0 left-0 right-0 h-14 flex items-center justify-between px-4 sm:px-6 z-50 bg-[#212121]/95 backdrop-blur-sm border-b border-white/5">
+        <header className="h-14 flex items-center justify-between px-4 sm:px-6 z-50 bg-[#212121]/95 backdrop-blur-sm border-b border-white/5 flex-none">
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
@@ -489,7 +489,7 @@ export default function AiAssistant() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-hidden flex flex-col w-full max-w-3xl mx-auto px-4 sm:px-6 relative pt-14">
+        <main className="flex-1 overflow-hidden flex flex-col w-full max-w-3xl mx-auto px-4 sm:px-6 relative">
           <div 
             ref={scrollRef}
             className="flex-1 overflow-y-auto pt-8 pb-40 space-y-10 scrollbar-hide"
