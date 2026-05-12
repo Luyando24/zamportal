@@ -1174,23 +1174,34 @@ export const handleInstitutionalChat: RequestHandler = async (req, res) => {
       const messageRes = completion.choices[0]?.message;
 
       if (messageRes?.tool_calls && messageRes.tool_calls.length > 0) {
-        // Handle tool calls
+        // 1. Push the assistant's tool call message ONCE
+        messages.push(messageRes);
+
+        // 2. Handle each tool call
         for (const toolCall of messageRes.tool_calls) {
           if (toolCall.function.name === "search_web") {
-            const args = JSON.parse(toolCall.function.arguments);
-            const searchResults = await searchWeb(args.query);
-            const searchContext = formatSearchResults(searchResults);
-            
-            messages.push(messageRes);
-            messages.push({
-              role: "tool",
-              tool_call_id: toolCall.id,
-              content: searchContext
-            } as any);
+            try {
+              const args = JSON.parse(toolCall.function.arguments);
+              const searchResults = await searchWeb(args.query);
+              const searchContext = formatSearchResults(searchResults);
+              
+              messages.push({
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: searchContext
+              } as any);
+            } catch (err) {
+              console.error("[AI Tool] Search error:", err);
+              messages.push({
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: "Error: Could not retrieve web search results."
+              } as any);
+            }
           }
         }
 
-        // Final completion with search results
+        // 3. Final completion with search results
         const finalCompletion = await client.chat.completions.create({
           model: "gpt-4o",
           messages,
@@ -1247,16 +1258,26 @@ export const handleInstitutionalChat: RequestHandler = async (req, res) => {
 
       const messageRes = completion.choices[0]?.message;
 
-      if (messageRes?.tool_calls) {
+      if (messageRes?.tool_calls && messageRes.tool_calls.length > 0) {
+        messages.push(messageRes);
+
         for (const toolCall of messageRes.tool_calls) {
-          const args = JSON.parse(toolCall.function.arguments);
-          const results = await searchWeb(args.query);
-          messages.push(messageRes);
-          messages.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: formatSearchResults(results)
-          } as any);
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
+            const results = await searchWeb(args.query);
+            messages.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: formatSearchResults(results)
+            } as any);
+          } catch (err) {
+            console.error("[Groq Tool] Error:", err);
+            messages.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: "Error: Web search unavailable."
+            } as any);
+          }
         }
         const final = await client.chat.completions.create({
           model: "llama-3.3-70b-versatile",
