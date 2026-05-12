@@ -139,15 +139,25 @@ async function generateWithGroq(prompt: string, serviceName: string, existingFor
 }
 
 export const handleGenerateForm: RequestHandler = async (req, res) => {
-  const { prompt, serviceName, model, existingForm } = req.body as {
+  let { prompt, serviceName, model, existingForm } = req.body as {
     prompt: string;
     serviceName: string;
-    model: SupportedModel;
+    model?: SupportedModel;
     existingForm?: any;
   };
 
-  if (!prompt || !model) {
-    return res.status(400).json({ error: "prompt and model are required" });
+  if (!prompt) {
+    return res.status(400).json({ error: "prompt is required" });
+  }
+
+  // Fallback to DB default if model not provided
+  if (!model) {
+    try {
+      const settings = await query("SELECT default_model FROM ai_settings LIMIT 1");
+      model = (settings.rows[0]?.default_model as SupportedModel) || "openai";
+    } catch (e) {
+      model = "openai";
+    }
   }
 
   // Check that the requested provider's API key is configured
@@ -250,9 +260,18 @@ JSON STRUCTURE:
 Return raw JSON only — no extra text, no markdown fences.`;
 
 export const handleGenerateService: RequestHandler = async (req, res) => {
-  const { prompt, model } = req.body as { prompt: string; model: SupportedModel };
+  let { prompt, model } = req.body as { prompt: string; model?: SupportedModel };
 
-  if (!prompt || !model) return res.status(400).json({ error: "prompt and model are required" });
+  if (!prompt) return res.status(400).json({ error: "prompt is required" });
+
+  if (!model) {
+    try {
+      const settings = await query("SELECT default_model FROM ai_settings LIMIT 1");
+      model = (settings.rows[0]?.default_model as SupportedModel) || "openai";
+    } catch (e) {
+      model = "openai";
+    }
+  }
 
   const keyMap: Record<SupportedModel, string | undefined> = {
     openai: process.env.OPENAI_API_KEY,
@@ -350,20 +369,27 @@ Return a JSON array of 3 objects with this structure:
 ]
 Return raw JSON only.`;
 
-export const RECOMMEND_SERVICES_PROMPT = `
-You are the ZamPortal AI Assistant. Your goal is to help Zambian citizens find the right government services.
-Given a user's natural language request, identify the top 3 most relevant services from the provided list.
+const RECOMMEND_SERVICES_SYSTEM_PROMPT = `
+You are the ZamPortal AI Assistant, a specialized guide for Zambian government services. 
+Your primary duty is to identify the most relevant government services from the provided list based on the user's natural language request.
 
-List of Available Services:
-{{SERVICES_JSON}}
+CRITICAL RELEVANCE RULES:
+1. STRENGTH OF MATCH: Only suggest services that have a DIRECT and STRONG connection to the user's request.
+2. NO HALLUCINATIONS: Do not invent or stretch connections. If a service is about "Traffic Accidents" and the user asks for "Visa Application", they are NOT related. Do not suggest one for the other.
+3. EMPTY STATE: If NO services in the provided list are directly relevant to the user's request, you MUST return an empty array for the "recommendations" field.
+4. CONTEXTUAL ACCURACY: Use the "description" and "category" of the services to determine fit.
+5. ACCURACY OVER HELPFULNESS: It is better to return no results than to return irrelevant ones.
 
-Response Format (Strict JSON):
+RESPONSE STRUCTURE (JSON ONLY):
 {
-  "response": "A friendly conversational response explaining how these services help.",
+  "response": "A friendly, concise message. If matches were found, explain briefly how they help. If NO matches were found, politely inform the user that the specific service is not yet available and invite them to suggest it.",
   "recommendations": [
-    { "id": "service_id_from_list", "reason": "Briefly why this fits" }
+    { "id": "UUID", "title": "SERVICE_TITLE", "reason": "A precise, one-sentence explanation of the direct relevance." }
   ]
 }
+
+Available Services:
+{{SERVICES_JSON}}
 `;
 
 export type SupportedModel = "openai" | "gemini" | "claude" | "groq";
@@ -405,9 +431,18 @@ JSON STRUCTURE:
 Return raw JSON only.`;
 
 export const handleSuggestServices: RequestHandler = async (req, res) => {
-  const { portalName, existingServices, model } = req.body as { portalName: string; existingServices: string; model: SupportedModel };
+  let { portalName, existingServices, model } = req.body as { portalName: string; existingServices: string; model?: SupportedModel };
 
-  if (!portalName || !model) return res.status(400).json({ error: "portalName and model are required" });
+  if (!portalName) return res.status(400).json({ error: "portalName is required" });
+
+  if (!model) {
+    try {
+      const settings = await query("SELECT default_model FROM ai_settings LIMIT 1");
+      model = (settings.rows[0]?.default_model as SupportedModel) || "openai";
+    } catch (e) {
+      model = "openai";
+    }
+  }
 
   const keyMap: Record<SupportedModel, string | undefined> = {
     openai: process.env.OPENAI_API_KEY,
@@ -461,9 +496,19 @@ export const handleSuggestServices: RequestHandler = async (req, res) => {
 };
 
 export const handleRecommendServices: RequestHandler = async (req, res) => {
-  const { query: userQuery, model } = req.body as { query: string; model: SupportedModel };
+  let { query: userQuery, model } = req.body as { query: string; model?: SupportedModel };
 
-  if (!userQuery || !model) return res.status(400).json({ error: "query and model are required" });
+  if (!userQuery) return res.status(400).json({ error: "query is required" });
+
+  if (!model) {
+    try {
+      const settings = await query("SELECT default_model FROM ai_settings LIMIT 1");
+      model = (settings.rows[0]?.default_model as SupportedModel) || "openai";
+      console.log(`[AI Recommend Services] Using system default model: ${model}`);
+    } catch (e) {
+      model = "openai";
+    }
+  }
 
   const keyMap: Record<SupportedModel, string | undefined> = {
     openai: process.env.OPENAI_API_KEY,
@@ -491,17 +536,7 @@ export const handleRecommendServices: RequestHandler = async (req, res) => {
       category: r.category || "General"
     })));
 
-    const systemPrompt = `You are the ZamPortal AI Assistant. Identify the 3 most relevant services.
-Return ONLY a JSON object with this structure:
-{
-  "response": "A friendly greeting and explanation of how you can help.",
-  "recommendations": [
-    { "id": "UUID", "title": "SERVICE_TITLE", "reason": "Short reason" }
-  ]
-}
-
-Available Services:
-${servicesJson}`;
+    const systemPrompt = RECOMMEND_SERVICES_SYSTEM_PROMPT.replace('{{SERVICES_JSON}}', servicesJson);
 
     const userMsg = `User Request: "${userQuery}"`;
     let raw = "";

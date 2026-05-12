@@ -87,15 +87,15 @@ export default function AuthLogin() {
 
       <Card className="w-full max-w-md border-none shadow-2xl rounded-[40px] overflow-hidden bg-white dark:bg-slate-900">
         <div className="h-2 w-full bg-emerald-600" />
-        <CardHeader className="text-center pt-16 pb-8">
-          <div className="mb-8 mx-auto w-28 h-28 bg-emerald-50 dark:bg-emerald-950/20 rounded-[40px] flex items-center justify-center shadow-inner group overflow-hidden border-4 border-white dark:border-slate-800">
+        <CardHeader className="text-center pt-8 pb-4">
+          <div className="mb-4 mx-auto w-20 h-20 bg-emerald-50 dark:bg-emerald-950/20 rounded-[30px] flex items-center justify-center shadow-inner group overflow-hidden border-2 border-white dark:border-slate-800">
             <img 
               src="/images/logo.png" 
               alt="Zambian Coat of Arms" 
-              className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-500" 
+              className="w-14 h-14 object-contain group-hover:scale-110 transition-transform duration-500" 
             />
           </div>
-          <CardTitle className="text-4xl font-black tracking-tight">Citizen Access</CardTitle>
+          <CardTitle className="text-3xl font-black tracking-tight">Citizen Access</CardTitle>
           <CardDescription className="text-lg font-medium mt-2">
             Securely access Zambian Government services
           </CardDescription>
@@ -111,8 +111,8 @@ export default function AuthLogin() {
                 <Input 
                   id="identifier"
                   type="text"
-                  placeholder="e.g. 123456/78/1 or mumba.c@domain.zm"
-                  className="pl-12 h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white transition-all text-lg font-bold"
+                  placeholder="e.g. NRC, Passport or email"
+                  className="pl-12 h-12 rounded-xl border-slate-100 bg-slate-50/50 focus:bg-white transition-all text-base font-bold"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   disabled={loading}
@@ -130,7 +130,7 @@ export default function AuthLogin() {
                   id="password"
                   type="password"
                   placeholder="••••••••"
-                  className="pl-12 h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white transition-all text-lg font-bold"
+                  className="pl-12 h-12 rounded-xl border-slate-100 bg-slate-50/50 focus:bg-white transition-all text-base font-bold"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
@@ -140,24 +140,19 @@ export default function AuthLogin() {
 
             <Button 
               type="submit" 
-              className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 rounded-[20px] text-lg font-black transition-all active:scale-95" 
+              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 rounded-xl text-base font-black transition-all active:scale-95" 
               disabled={loading}
             >
               {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "Authorize & Sign In"}
             </Button>
           </form>
 
-          <div className="mt-10 pt-8 border-t border-slate-50 dark:border-slate-800 text-center">
-            <p className="text-slate-400 font-bold mb-4">Don't have a secure account yet?</p>
+          <div className="mt-6 pt-6 border-t border-slate-50 dark:border-slate-800 text-center">
+            <p className="text-slate-400 font-bold mb-3">Don't have a secure account yet?</p>
             <div className="space-y-3">
               <Link to="/register">
-                <Button variant="outline" className="w-full h-14 rounded-2xl border-emerald-100 text-emerald-600 hover:bg-emerald-50 font-black">
+                <Button variant="outline" className="w-full h-12 rounded-xl border-emerald-100 text-emerald-600 hover:bg-emerald-50 font-black">
                   Create Citizen Account
-                </Button>
-              </Link>
-              <Link to="/admin/login">
-                <Button variant="ghost" className="w-full h-10 rounded-xl text-slate-400 hover:text-emerald-600 font-bold text-xs uppercase tracking-widest">
-                  Departmental/Institutional Login
                 </Button>
               </Link>
             </div>

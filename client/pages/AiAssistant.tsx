@@ -47,7 +47,7 @@ export default function AiAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [globalDefaultModel, setGlobalDefaultModel] = useState<string>("openai");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
-  const [selectedModel, setSelectedModel] = useState("openai");
+  const [selectedModel, setSelectedModel] = useState("");
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -128,8 +128,11 @@ export default function AiAssistant() {
       setActiveId(newId);
       handleSendMessage(initialQuery, newId);
     } else if (conversations.length > 0 && !activeId) {
-      setActiveId(conversations[0].id);
       setMessages(conversations[0].messages);
+      // Ensure the model matches the last message or global default if possible
+      const lastAssistantMsg = [...conversations[0].messages].reverse().find(m => m.role === 'assistant');
+      if (lastAssistantMsg && lastAssistantMsg.content.includes("GPT-4")) setSelectedModel("openai");
+      else if (lastAssistantMsg && lastAssistantMsg.content.includes("Gemini")) setSelectedModel("gemini");
     } else if (!activeId) {
       startNewChat();
     }
@@ -720,7 +723,8 @@ export default function AiAssistant() {
                               )}
                               {m === 'openai' ? 'OpenAI GPT-4o' : 
                                m === 'gemini' ? 'Google Gemini' : 
-                               m === 'claude' ? 'Anthropic Claude' : 'Groq Llama 3.1'}
+                               m === 'claude' ? 'Anthropic Claude' : 
+                               m === 'groq' ? 'Groq Llama 3.1' : m}
                             </DropdownMenuItem>
                           ))}
                         </DropdownMenuContent>

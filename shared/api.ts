@@ -14,6 +14,7 @@ export interface User {
   lastName: string;
   phone?: string;
   nrc?: NRC;
+  passportNumber?: string;
   role: UserRole;
   isActive: boolean;
   createdAt: string;
@@ -43,7 +44,8 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
-  nrc: NRC;
+  nrc?: NRC;
+  passportNumber?: string;
   role?: UserRole;
 }
 

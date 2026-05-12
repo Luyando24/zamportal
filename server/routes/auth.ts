@@ -27,18 +27,18 @@ export const handleLogin: RequestHandler = async (req, res) => {
 
     if (error) {
       console.log(`Supabase login error for ${identifier}:`, error.message);
-      // If it fails, maybe they used NRC? 
-      const userRes = await query('SELECT email FROM users WHERE nrc = $1', [identifier]);
+      // If it fails, maybe they used NRC or Passport? 
+      const userRes = await query('SELECT email FROM users WHERE nrc = $1 OR passport_number = $1', [identifier]);
       if (userRes.rows.length > 0) {
         const email = userRes.rows[0].email;
-        console.log(`NRC found, attempting login with email: ${email}`);
+        console.log(`Identifier found, attempting login with email: ${email}`);
         const { data: nrcData, error: nrcError } = await supabaseAdmin.auth.signInWithPassword({
           email,
           password
         });
         
         if (nrcError) {
-          console.log(`NRC-based login error:`, nrcError.message);
+          console.log(`Identifier-based login error:`, nrcError.message);
           return res.status(401).json({ error: "Invalid credentials" });
         }
         
@@ -76,21 +76,22 @@ export const handleLogin: RequestHandler = async (req, res) => {
     
     if (profileRes.rows.length === 0) {
       console.log(`Auth.Login: User ${user.id} missing from local DB. Syncing...`);
-      const { first_name, last_name, nrc } = user.user_metadata || {};
+      const { first_name, last_name, nrc, passport_number } = user.user_metadata || {};
       const { role, portal_id } = user.app_metadata || {};
       
       await query(
-        `INSERT INTO users (id, email, nrc, password_hash, role, first_name, last_name, is_active, portal_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO users (id, email, nrc, passport_number, password_hash, role, first_name, last_name, is_active, portal_id) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (email) DO UPDATE SET 
            id = EXCLUDED.id,
            nrc = EXCLUDED.nrc,
+           passport_number = EXCLUDED.passport_number,
            first_name = EXCLUDED.first_name,
            last_name = EXCLUDED.last_name,
            role = EXCLUDED.role,
            portal_id = EXCLUDED.portal_id,
            updated_at = now()`,
-        [user.id, user.email, nrc || '', 'SUPABASE_AUTH', role || 'user', first_name || 'User', last_name || 'New', true, portal_id || null]
+        [user.id, user.email, nrc || '', passport_number || '', 'SUPABASE_AUTH', role || 'user', first_name || 'User', last_name || 'New', true, portal_id || null]
       );
       
       // Re-fetch profile
@@ -132,6 +133,7 @@ export const handleRegister: RequestHandler = async (req, res) => {
       firstName,
       lastName,
       nrc,
+      passportNumber,
       role = "user",
       portal_id
     }: RegisterRequest & { portal_id?: string } = req.body;
@@ -141,8 +143,8 @@ export const handleRegister: RequestHandler = async (req, res) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { first_name: firstName, last_name: lastName, nrc },
-      app_metadata: { role, nrc, portal_id }
+      user_metadata: { first_name: firstName, last_name: lastName, nrc, passport_number: passportNumber },
+      app_metadata: { role, nrc, passport_number: passportNumber, portal_id }
     });
     
     if (error) throw error;
@@ -151,16 +153,17 @@ export const handleRegister: RequestHandler = async (req, res) => {
 
     // 2. Sync to local users table for queries/joins
     await query(
-      `INSERT INTO users (id, email, nrc, password_hash, role, first_name, last_name, is_active, portal_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO users (id, email, nrc, passport_number, password_hash, role, first_name, last_name, is_active, portal_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (email) DO UPDATE SET 
          nrc = EXCLUDED.nrc,
+         passport_number = EXCLUDED.passport_number,
          first_name = EXCLUDED.first_name,
          last_name = EXCLUDED.last_name,
          role = EXCLUDED.role,
          portal_id = EXCLUDED.portal_id,
          updated_at = now()`,
-      [user.id, email, nrc, 'SUPABASE_AUTH', role, firstName, lastName, true, portal_id]
+      [user.id, email, nrc || '', passportNumber || '', 'SUPABASE_AUTH', role, firstName, lastName, true, portal_id]
     );
     
     const response: RegisterResponse = {

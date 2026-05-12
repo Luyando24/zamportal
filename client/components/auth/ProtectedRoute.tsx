@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -7,15 +7,20 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireSuperAdmin?: boolean;
+  requireCitizen?: boolean;
+  checkPortalSlug?: boolean;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requireAdmin = false,
-  requireSuperAdmin = false
+  requireSuperAdmin = false,
+  requireCitizen = false,
+  checkPortalSlug = false
 }) => {
   const { session, loading, isAdmin, isSuperAdmin, isStaff } = useAuth();
   const location = useLocation();
+  const { portalSlug } = useParams();
 
   if (loading) {
     return (
@@ -39,8 +44,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireAdmin && !isAdmin && !isStaff) {
-    // Redirect to unauthorized or home
     return <Navigate to="/" replace />;
+  }
+
+  if (requireCitizen && (isAdmin || isSuperAdmin) && !isStaff) {
+    // Redirect admins to their respective dashboards
+    if (isSuperAdmin) {
+      return <Navigate to="/admin" replace />;
+    }
+    if (session.portalSlug) {
+      return <Navigate to={`/dashboard/${session.portalSlug}`} replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
+
+  // Check if institutional admin is accessing their assigned portal
+  if (checkPortalSlug && !isSuperAdmin && portalSlug) {
+    const userPortalSlug = session.portalSlug;
+    if (userPortalSlug && userPortalSlug !== portalSlug) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;

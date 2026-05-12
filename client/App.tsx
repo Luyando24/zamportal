@@ -60,9 +60,9 @@ const App = () => {
                 <Route path="/assistant" element={<AiAssistant />} />
                 
                 {/* Protected Citizen Dashboard */}
-                <Route path="/my-portal" element={<ProtectedRoute><MyPortal /></ProtectedRoute>} />
-                <Route path="/my-portal/applications/:appId" element={<ProtectedRoute><ApplicationStatus /></ProtectedRoute>} />
-                <Route path="/dashboard" element={<ProtectedRoute><MyPortal /></ProtectedRoute>} />
+                <Route path="/my-portal" element={<ProtectedRoute requireCitizen><MyPortal /></ProtectedRoute>} />
+                <Route path="/my-portal/applications/:appId" element={<ProtectedRoute requireCitizen><ApplicationStatus /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute requireCitizen><MyPortal /></ProtectedRoute>} />
                 
                 {/* Protected Super Admin */}
                 <Route path="/admin" element={<ProtectedRoute requireSuperAdmin><AdminPortals /></ProtectedRoute>} />
@@ -77,12 +77,12 @@ const App = () => {
                 <Route path="/admin/module-preview" element={<ProtectedRoute requireSuperAdmin><ModulePreview /></ProtectedRoute>} />
                 
                 {/* Institutional & Service Routes */}
-                <Route path="/dashboard/:portalSlug" element={<ProtectedRoute requireAdmin><PortalManagement /></ProtectedRoute>} />
-                <Route path="/dashboard/:portalSlug/marketplace" element={<ProtectedRoute requireAdmin><ServiceMarketplace /></ProtectedRoute>} />
-                <Route path="/dashboard/:portalSlug/define-service" element={<ProtectedRoute requireAdmin><ServiceDesigner /></ProtectedRoute>} />
-                <Route path="/dashboard/:portalSlug/designer/:serviceId/:formId" element={<ProtectedRoute requireAdmin><FormDesigner /></ProtectedRoute>} />
-                <Route path="/dashboard/:portalSlug/applications/:appId" element={<ProtectedRoute requireAdmin><ApplicationReview /></ProtectedRoute>} />
-                <Route path="/dashboard/:portalSlug/ai" element={<ProtectedRoute requireAdmin><InstitutionalAiPage /></ProtectedRoute>} />
+                <Route path="/dashboard/:portalSlug" element={<ProtectedRoute requireAdmin checkPortalSlug><PortalManagement /></ProtectedRoute>} />
+                <Route path="/dashboard/:portalSlug/marketplace" element={<ProtectedRoute requireAdmin checkPortalSlug><ServiceMarketplace /></ProtectedRoute>} />
+                <Route path="/dashboard/:portalSlug/define-service" element={<ProtectedRoute requireAdmin checkPortalSlug><ServiceDesigner /></ProtectedRoute>} />
+                <Route path="/dashboard/:portalSlug/designer/:serviceId/:formId" element={<ProtectedRoute requireAdmin checkPortalSlug><FormDesigner /></ProtectedRoute>} />
+                <Route path="/dashboard/:portalSlug/applications/:appId" element={<ProtectedRoute requireAdmin checkPortalSlug><ApplicationReview /></ProtectedRoute>} />
+                <Route path="/dashboard/:portalSlug/ai" element={<ProtectedRoute requireAdmin checkPortalSlug><InstitutionalAiPage /></ProtectedRoute>} />
                 <Route path="/:portalSlug/apply/:serviceSlug" element={<ServiceApplication />} />
                 <Route path="/:portalSlug" element={<PortalPublic />} />
                 <Route path="/:portalSlug/website" element={<PortalPublic />} />

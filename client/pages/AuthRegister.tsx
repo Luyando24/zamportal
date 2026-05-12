@@ -23,6 +23,7 @@ export default function AuthRegister() {
     lastName: "",
     email: "",
     nrc: "",
+    passportNumber: "",
     password: "",
     confirmPassword: ""
   });
@@ -55,15 +56,22 @@ export default function AuthRegister() {
 
   const nextStep = () => {
     if (step === 1) {
-      if (!formData.firstName || !formData.lastName || !formData.nrc) {
-        toast.error("Please provide your identity details first");
+      if (!formData.firstName || !formData.lastName) {
+        toast.error("Please provide your name details first");
         return;
       }
       
-      const nrcPattern = /^\d{6}\/\d{2}\/\d{1}$/;
-      if (!nrcPattern.test(formData.nrc)) {
-        toast.error("Invalid NRC format. Use: 123456/78/1");
+      if (!formData.nrc && !formData.passportNumber) {
+        toast.error("Please provide either NRC or Passport Number");
         return;
+      }
+      
+      if (formData.nrc) {
+        const nrcPattern = /^\d{6}\/\d{2}\/\d{1}$/;
+        if (!nrcPattern.test(formData.nrc)) {
+          toast.error("Invalid NRC format. Use: 123456/78/1");
+          return;
+        }
       }
     }
     setStep(step + 1);
@@ -122,7 +130,7 @@ export default function AuthRegister() {
   const progressValue = (step / 2) * 100;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 font-sans py-20">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 font-sans py-8">
       <div className="absolute top-8 left-8 right-8 flex justify-between items-center">
         <Link to="/login">
           <Button variant="ghost" className="rounded-xl font-bold">
@@ -140,22 +148,22 @@ export default function AuthRegister() {
           />
         </div>
         
-        <CardHeader className="text-center pt-16 pb-8 px-10">
-          <div className="mb-8 mx-auto w-28 h-28 bg-emerald-50 dark:bg-emerald-950/20 rounded-[40px] flex items-center justify-center shadow-inner group overflow-hidden border-4 border-white dark:border-slate-800">
+        <CardHeader className="text-center pt-8 pb-4 px-10">
+          <div className="mb-4 mx-auto w-20 h-20 bg-emerald-50 dark:bg-emerald-950/20 rounded-[30px] flex items-center justify-center shadow-inner group overflow-hidden border-2 border-white dark:border-slate-800">
             <img 
               src="/images/logo.png" 
               alt="Zambian Coat of Arms" 
-              className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-500" 
+              className="w-14 h-14 object-contain group-hover:scale-110 transition-transform duration-500" 
             />
           </div>
-          <CardTitle className="text-4xl font-black tracking-tight leading-tight">National Citizen ID</CardTitle>
-          <CardDescription className="text-lg font-medium mt-3">
+          <CardTitle className="text-3xl font-black tracking-tight leading-tight">National Citizen ID</CardTitle>
+          <CardDescription className="text-sm font-medium mt-1">
             {step === 1 ? "Step 1: Identity Verification" : "Step 2: Secure Access Credentials"}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="px-12 pb-16">
-          <form className="space-y-8" onSubmit={onSubmit}>
+        <CardContent className="px-10 pb-8">
+          <form className="space-y-4" onSubmit={onSubmit}>
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
                 <div className="flex items-center gap-3 mb-2">
@@ -163,36 +171,38 @@ export default function AuthRegister() {
                   <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Personal Identity</h3>
                 </div>
                 
-                <div className="space-y-3">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">First Name</label>
-                  <Input 
-                    id="firstName" 
-                    placeholder="e.g. Chanda" 
-                    className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-lg focus:bg-white transition-all" 
-                    value={formData.firstName} 
-                    onChange={handleChange} 
-                  />
-                </div>
-                
-                <div className="space-y-3">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">Last Name</label>
-                  <Input 
-                    id="lastName" 
-                    placeholder="e.g. Mwila" 
-                    className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-lg focus:bg-white transition-all" 
-                    value={formData.lastName} 
-                    onChange={handleChange} 
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">First Name</label>
+                    <Input 
+                      id="firstName" 
+                      placeholder="e.g. Chanda" 
+                      className="h-12 rounded-xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-base focus:bg-white transition-all" 
+                      value={formData.firstName} 
+                      onChange={handleChange} 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">Last Name</label>
+                    <Input 
+                      id="lastName" 
+                      placeholder="e.g. Mwila" 
+                      className="h-12 rounded-xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-base focus:bg-white transition-all" 
+                      value={formData.lastName} 
+                      onChange={handleChange} 
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">NRC Number</label>
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1 text-[10px]">NRC Number (Citizens)</label>
                   <div className="relative group">
                     <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
                     <Input 
                       id="nrc" 
                       placeholder="123456/78/1" 
-                      className="pl-12 h-14 rounded-2xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-lg focus:bg-white transition-all" 
+                      className="pl-12 h-12 rounded-xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-base focus:bg-white transition-all" 
                       value={formData.nrc} 
                       onChange={handleChange} 
                       maxLength={11}
@@ -200,12 +210,26 @@ export default function AuthRegister() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1 text-[10px]">Passport Number (Non-Citizens)</label>
+                  <div className="relative group">
+                    <Shield className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                    <Input 
+                      id="passportNumber" 
+                      placeholder="e.g. ZM123456" 
+                      className="pl-12 h-12 rounded-xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-base focus:bg-white transition-all" 
+                      value={formData.passportNumber} 
+                      onChange={handleChange} 
+                    />
+                  </div>
+                </div>
+
                 <Button 
                   type="button" 
                   onClick={nextStep}
-                  className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 rounded-2xl text-lg font-black transition-all active:scale-95 flex items-center justify-center gap-3"
+                  className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 rounded-xl text-base font-black transition-all active:scale-95 flex items-center justify-center gap-3"
                 >
-                  Continue to Credentials <ArrowRight className="h-6 w-6" />
+                  Continue to Credentials <ArrowRight className="h-5 w-5" />
                 </Button>
               </div>
             )}
@@ -217,7 +241,7 @@ export default function AuthRegister() {
                   <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Security Details</h3>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">Email Address</label>
                   <div className="relative group">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
@@ -225,32 +249,32 @@ export default function AuthRegister() {
                       id="email" 
                       type="email" 
                       placeholder="e.g. mumba.c@domain.zm" 
-                      className="pl-12 h-14 rounded-2xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-lg focus:bg-white transition-all" 
+                      className="pl-12 h-12 rounded-xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-base focus:bg-white transition-all" 
                       value={formData.email} 
                       onChange={handleChange} 
                     />
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">Create Password</label>
                   <Input 
                     id="password" 
                     type="password" 
                     placeholder="••••••••" 
-                    className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-lg focus:bg-white transition-all" 
+                    className="h-12 rounded-xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-base focus:bg-white transition-all" 
                     value={formData.password} 
                     onChange={handleChange} 
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-500 px-1">Confirm Password</label>
                   <Input 
                     id="confirmPassword" 
                     type="password" 
                     placeholder="••••••••" 
-                    className="h-14 rounded-2xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-lg focus:bg-white transition-all" 
+                    className="h-12 rounded-xl border-slate-100 bg-slate-50/50 dark:bg-slate-800/50 font-bold text-base focus:bg-white transition-all" 
                     value={formData.confirmPassword} 
                     onChange={handleChange} 
                   />
@@ -261,23 +285,23 @@ export default function AuthRegister() {
                     type="button" 
                     variant="ghost" 
                     onClick={prevStep}
-                    className="h-16 flex-1 rounded-2xl font-black text-lg border-2 border-slate-100"
+                    className="h-14 flex-1 rounded-xl font-black text-base border-2 border-slate-100"
                   >
                     Back
                   </Button>
                   <Button 
                     type="submit" 
-                    className="h-16 flex-[2] bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 rounded-2xl text-lg font-black transition-all active:scale-95" 
+                    className="h-14 flex-[2] bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 rounded-xl text-base font-black transition-all active:scale-95" 
                     disabled={loading}
                   >
-                    {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "Verify & Create Account"}
+                    {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Verify & Create Account"}
                   </Button>
                 </div>
               </div>
             )}
           </form>
 
-          <div className="mt-12 text-center">
+          <div className="mt-8 text-center">
             <p className="text-slate-400 font-bold">
               Already verified? <Link to="/login" className="text-emerald-600 hover:underline">Sign In here</Link>
             </p>
