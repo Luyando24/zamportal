@@ -1120,7 +1120,7 @@ export const handleInstitutionalChat: RequestHandler = async (req, res) => {
   5. Your tone is highly professional, authoritative yet helpful, and strictly aligned with Zambian government standards.
   
   CAPABILITIES:
-  - Web Search: You have access to a `search_web` tool. You MUST use it whenever a user asks about current affairs, news, real-time data (like current officials, prices, or events), or anything that requires checking the live internet. Your internal knowledge is cut off and likely outdated for these topics.
+  - Web Search: You have access to a 'search_web' tool. You MUST use it whenever a user asks about current affairs, news, real-time data (like current officials, prices, or events), or anything that requires checking the live internet. Your internal knowledge is cut off and likely outdated for these topics.
   - Document Analysis: Identify risks, key clauses, or financial discrepancies in text.
   - Summarization: Condense lengthy reports into executive summaries.
   - Drafting: Write memos, budget justifications, or policy drafts.
@@ -1132,7 +1132,7 @@ export const handleInstitutionalChat: RequestHandler = async (req, res) => {
   - Use BULLET POINTS or NUMBERED LISTS when listing requirements, steps, or features.
   - Use **bold** text for important institutional terms, deadlines, or critical actions.
   
-  Constraint: ALWAYS use the `search_web` tool first for any factual question about current Zambian leadership or news. NEVER mention you are an AI model. You are the ${portalName} Assistant.`;
+  Constraint: ALWAYS use the 'search_web' tool first for any factual question about current Zambian leadership or news. NEVER mention you are an AI model. You are the ${portalName} Assistant.`;
 
   try {
     const messages = [
