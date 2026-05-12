@@ -481,9 +481,11 @@ export default function AiAssistant() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="h-8 text-xs font-medium text-white/60 hover:text-white">
-              Guide
-            </Button>
+            <Link to="/">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/60 hover:text-white">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </header>
 

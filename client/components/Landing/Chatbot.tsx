@@ -101,7 +101,7 @@ const Chatbot = () => {
     <>
       {/* Floating Chat Button */}
       <div className={cn(
-        "fixed bottom-6 right-6 z-50 transition-all duration-500 ease-in-out",
+        "fixed bottom-24 md:bottom-6 right-6 z-50 transition-all duration-500 ease-in-out",
         isOpen ? "scale-0 opacity-0 rotate-90" : "scale-100 opacity-100 rotate-0"
       )}>
         <Button 
@@ -116,7 +116,7 @@ const Chatbot = () => {
 
       {/* AI Assistant Window */}
       <div className={cn(
-        "fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-48px)] h-[600px] max-h-[calc(100vh-120px)] bg-white dark:bg-slate-900 rounded-[32px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border border-slate-200 dark:border-slate-800 overflow-hidden",
+        "fixed bottom-24 md:bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-48px)] h-[600px] max-h-[calc(100vh-120px)] bg-white dark:bg-slate-900 rounded-[32px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border border-slate-200 dark:border-slate-800 overflow-hidden",
         isOpen ? "opacity-100 transform scale-100 translate-y-0" : "opacity-0 transform scale-95 translate-y-10 pointer-events-none"
       )}>
         {/* Header */}
