@@ -1191,12 +1191,15 @@ export const handleInstitutionalChat: RequestHandler = async (req, res) => {
                 tool_call_id: toolCall.id,
                 content: searchContext
               } as any);
-            } catch (err) {
+            } catch (err: any) {
               console.error("[AI Tool] Search error:", err);
+              const errorMsg = err.message?.includes("fetch") 
+                ? "Error: Network connectivity issue. Could not reach search provider."
+                : "Error: Could not retrieve web search results.";
               messages.push({
                 role: "tool",
                 tool_call_id: toolCall.id,
-                content: "Error: Could not retrieve web search results."
+                content: errorMsg
               } as any);
             }
           }
@@ -1271,12 +1274,15 @@ export const handleInstitutionalChat: RequestHandler = async (req, res) => {
               tool_call_id: toolCall.id,
               content: formatSearchResults(results)
             } as any);
-          } catch (err) {
+          } catch (err: any) {
             console.error("[Groq Tool] Error:", err);
+            const errorMsg = err.message?.includes("fetch") 
+              ? "Error: Network connectivity issue. Could not reach search provider."
+              : "Error: Web search unavailable.";
             messages.push({
               role: "tool",
               tool_call_id: toolCall.id,
-              content: "Error: Web search unavailable."
+              content: errorMsg
             } as any);
           }
         }
