@@ -34,6 +34,8 @@ import ThemeToggle from "@/components/navigation/ThemeToggle";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 import ResourceManager from "@/components/admin/ResourceManager";
+import AdminBottomNav from "@/components/navigation/AdminBottomNav";
+import Chatbot from "@/components/Landing/Chatbot";
 
 interface Service {
   id: string;
@@ -325,7 +327,8 @@ const AdminPortals = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 lg:pb-0">
+      <Chatbot />
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between p-4 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
         <div className="flex items-center gap-3">
@@ -648,18 +651,20 @@ const AdminPortals = () => {
           )}
 
           {activeTab === "portals" && (
-            <div className="space-y-8 animate-in slide-in-from-right duration-500">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div>
-                  <h2 className="text-3xl font-extrabold tracking-tight">Institutional Portals</h2>
+            <div className="space-y-6 animate-in slide-in-from-right duration-500">
+              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">Institutional Portals</h2>
+                    <p className="text-muted-foreground text-xs font-medium">Manage provisioned government systems</p>
+                  </div>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg text-xs font-bold h-10 px-6 rounded-xl" onClick={() => navigate("/admin/portals/provision")}>
+                    <Plus className="mr-2 h-4 w-4" /> Provision New
+                  </Button>
                 </div>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={() => navigate("/admin/portals/provision")}>
-                  <Plus className="mr-2 h-4 w-4" /> Deploy New System
-                </Button>
-
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {portals.map(portal => (
                   <Card key={portal.id} className="group overflow-hidden border-none shadow-sm hover:shadow-xl transition-all duration-500 bg-white dark:bg-slate-900">
                     <div 
@@ -692,37 +697,37 @@ const AdminPortals = () => {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-6 h-10 font-medium">
+                    <CardContent className="p-4">
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 mb-4 h-8 font-medium">
                         {portal.description || "Official government portal system deployed for institutional service delivery."}
                       </p>
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
-                        <div className="flex gap-1.5">
-                          <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: portal.theme_config?.primaryColor }} />
-                          <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: portal.theme_config?.secondaryColor }} />
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-800">
+                        <div className="flex gap-1">
+                          <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: portal.theme_config?.primaryColor }} />
+                          <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: portal.theme_config?.secondaryColor }} />
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-emerald-600 transition-colors" onClick={() => window.open(`/${portal.slug}`, '_blank')}>
-                            <ExternalLink className="h-4 w-4" />
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600" onClick={() => window.open(`/${portal.slug}`, '_blank')}>
+                            <ExternalLink className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 transition-colors">
-                            <Palette className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600">
+                            <Palette className="h-3.5 w-3.5" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-8 w-8 text-slate-400 hover:text-red-600 transition-colors"
+                            className="h-7 w-7 text-slate-400 hover:text-red-600"
                             onClick={() => handleDeletePortal(portal.id, portal.name)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </div>
                     </CardContent>
                     <CardFooter className="p-0">
                       <Link to={`/dashboard/${portal.slug}`} className="w-full">
-                        <Button className="w-full rounded-none h-12 bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-emerald-600 hover:text-white transition-all border-none">
-                          Manage Operations <Settings className="ml-2 h-4 w-4" />
+                        <Button className="w-full rounded-none h-10 bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-emerald-600 hover:text-white transition-all border-none">
+                          Dashboard <ChevronRight className="ml-1 h-3 w-3" />
                         </Button>
                       </Link>
                     </CardFooter>
@@ -812,28 +817,31 @@ const AdminPortals = () => {
 
           {/* Service Management View */}
           {activeTab === "services_mgmt" && (
-            <div className="space-y-8 animate-in fade-in duration-500">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div>
-                  <h2 className="text-3xl font-black tracking-tight">National Service Catalog</h2>
+            <div className="space-y-6 animate-in fade-in duration-500">
+              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                  <div>
+                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">National Service Catalog</h2>
+                    <p className="text-muted-foreground text-xs font-medium">Global digital service registry</p>
+                  </div>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg text-xs font-bold h-10 px-6 rounded-xl" onClick={() => navigate("/admin/define-service")}>
+                    <Plus className="mr-2 h-4 w-4" /> Register Service
+                  </Button>
                 </div>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 shadow-lg" onClick={() => navigate("/admin/define-service")}>
-                  <Plus className="mr-2 h-4 w-4" /> Register New Service
-                </Button>
-              </div>
-
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <Input 
-                  placeholder="Search across thousands of government services..." 
-                  className="h-16 pl-12 rounded-[24px] border-none shadow-xl bg-white dark:bg-slate-900 text-lg font-medium"
-                  value={serviceSearch}
-                  onChange={(e) => setServiceSearch(e.target.value)}
-                />
-                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold px-3 py-1">
-                    {totalServices} Total Services
-                  </Badge>
+                
+                <div className="relative group">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                  <Input 
+                    placeholder="Search national catalog..." 
+                    className="h-11 pl-11 rounded-xl border-none shadow-sm bg-white dark:bg-slate-900 text-sm font-bold"
+                    value={serviceSearch}
+                    onChange={(e) => setServiceSearch(e.target.value)}
+                  />
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-400 px-3 py-1">
+                      {totalServices} Services
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
@@ -1167,6 +1175,10 @@ const AdminPortals = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AdminBottomNav 
+        activeTab={activeTab} 
+        onTabChange={(tab) => setActiveTab(tab)} 
+      />
     </div>
   );
 };

@@ -21,6 +21,8 @@ import ThemeToggle from "@/components/navigation/ThemeToggle";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Api } from "@/lib/api";
+import InstitutionalBottomNav from "@/components/navigation/InstitutionalBottomNav";
+import Chatbot from "@/components/Landing/Chatbot";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -265,7 +267,8 @@ const PortalManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-20 lg:pb-0">
+      <Chatbot />
       <header className="sticky top-0 z-50 flex items-center justify-between p-4 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm">
         <div className="flex items-center gap-3">
           <Button
@@ -618,19 +621,21 @@ const PortalManagement = () => {
           )}
 
           {activeTab === 'applications' && (
-            <div className="space-y-8 animate-in slide-in-from-bottom duration-500">
-              <div className="flex justify-between items-end">
-                <div>
-                  <h2 className="text-3xl font-black tracking-tight">Application Queue</h2>
-                  <p className="text-slate-400 font-medium mt-1">Manage and track service requests from citizens.</p>
-                </div>
-                <div className="flex gap-4">
-                  <Button variant="outline" onClick={fetchApplications} disabled={isAppLoading} className="h-10 px-4 font-bold rounded-xl border-slate-200">
-                    {isAppLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4 mr-2" />} Refresh Queue
-                  </Button>
-                  <Badge className="bg-emerald-100 text-emerald-700 h-10 px-6 font-black flex items-center">
-                    {applications.length} Active Requests
-                  </Badge>
+            <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
+              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">Application Queue</h2>
+                    <p className="text-slate-400 text-xs font-medium">Manage citizen service requests</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={fetchApplications} disabled={isAppLoading} className="h-10 px-4 text-xs font-bold rounded-xl border-slate-200">
+                      {isAppLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4 mr-2" />} Sync
+                    </Button>
+                    <Badge className="bg-emerald-100 text-emerald-700 h-10 px-4 text-[10px] font-black uppercase flex items-center rounded-xl">
+                      {applications.length} Requests
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
@@ -707,51 +712,53 @@ const PortalManagement = () => {
           )}
 
           {activeTab === 'services' && (
-            <div className="space-y-8 animate-in slide-in-from-right duration-500">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div>
-                  <h2 className="text-3xl font-black tracking-tight">Service Catalog</h2>
-                  <p className="text-slate-400 font-medium mt-1">Services currently active in your institutional portal.</p>
-                </div>
-                <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="h-12 px-6 font-black rounded-xl border-slate-200"
-                    onClick={openMarketplace}
-                  >
-                    <Briefcase className="mr-2 h-5 w-5 text-emerald-600" /> Service Marketplace
-                  </Button>
-                  <Button 
-                    className="h-12 px-6 font-black rounded-xl text-white shadow-lg" 
-                    style={{ backgroundColor: primaryColor }}
-                    onClick={() => navigate(`/dashboard/${portalSlug}/define-service`)}
-                  >
-                    <Plus className="mr-2 h-5 w-5" /> Define New Service
-                  </Button>
+            <div className="space-y-6 animate-in slide-in-from-right duration-500">
+              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">Service Catalog</h2>
+                    <p className="text-slate-400 text-xs font-medium">Configure institutional service delivery</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="h-10 px-4 text-xs font-black rounded-xl border-slate-200"
+                      onClick={openMarketplace}
+                    >
+                      Marketplace
+                    </Button>
+                    <Button 
+                      className="h-10 px-4 text-xs font-black rounded-xl text-white shadow-lg" 
+                      style={{ backgroundColor: primaryColor }}
+                      onClick={() => navigate(`/dashboard/${portalSlug}/define-service`)}
+                    >
+                      <Plus className="mr-2 h-4 w-4" /> Add Service
+                    </Button>
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {data.services.map(service => (
-                  <Card key={service.id} className="group border-none shadow-sm hover:shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900 overflow-hidden">
-                    <div className="h-1.5 w-full" style={{ backgroundColor: `${primaryColor}20` }} />
-                    <CardHeader>
+                  <Card key={service.id} className="group border-none shadow-sm hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
+                    <div className="h-1 w-full" style={{ backgroundColor: `${primaryColor}20` }} />
+                    <CardHeader className="p-5 pb-3">
                       <div className="flex justify-between items-start mb-2">
-                        <Badge variant="outline" className="font-bold text-[10px] uppercase border-slate-200">{service.category_name}</Badge>
-                        <div className="flex gap-2">
+                        <Badge variant="outline" className="font-bold text-[8px] uppercase tracking-widest border-slate-200 px-2 py-0.5">{service.category_name}</Badge>
+                        <div className="flex gap-1.5">
                           <button 
                             onClick={() => confirmRemoveService(service.id)}
-                            className="p-2 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-500 hover:bg-red-100 transition-colors"
+                            className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-500 hover:bg-red-100 transition-colors"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
-                          <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 transition-colors group-hover:bg-emerald-50 group-hover:text-emerald-600">
-                            <Settings className="h-4 w-4" />
+                          <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 transition-colors group-hover:bg-emerald-50 group-hover:text-emerald-600">
+                            <Settings className="h-3.5 w-3.5" />
                           </div>
                         </div>
                       </div>
-                      <CardTitle className="text-xl group-hover:text-emerald-600 transition-colors leading-tight">{service.title}</CardTitle>
-                      <CardDescription className="line-clamp-3 font-medium mt-2 min-h-[60px]">{service.description}</CardDescription>
+                      <CardTitle className="text-sm font-black tracking-tight group-hover:text-emerald-600 transition-colors truncate">{service.title}</CardTitle>
+                      <CardDescription className="line-clamp-2 text-xs font-medium mt-1 h-8">{service.description}</CardDescription>
                     </CardHeader>
                     <CardFooter className="pt-0 border-t mt-4 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col gap-2 p-4">
                       <div className="w-full space-y-2 mb-2">
@@ -1022,6 +1029,11 @@ const PortalManagement = () => {
           </span>
         </Button>
       )}
+      <InstitutionalBottomNav 
+        activeTab={activeTab} 
+        onTabChange={(tab) => setActiveTab(tab)} 
+        primaryColor={primaryColor}
+      />
     </div>
   );
 };
