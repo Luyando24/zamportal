@@ -344,7 +344,10 @@ export default function Index() {
           <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} ZamPortal. All rights reserved.</p>
         </div>
       </footer>
-      <MobileBottomNav onLoginClick={() => setIsModalOpen(true)} />
+      <MobileBottomNav 
+        onMenuClick={() => setIsMenuOpen(!isMenuOpen)} 
+        onLoginClick={() => navigate('/login')} 
+      />
     </div>
   );
 }

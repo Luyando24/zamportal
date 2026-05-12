@@ -59,6 +59,8 @@ import {
 import { cn } from "@/lib/utils";
 
 import { Api } from "@/lib/api";
+import CitizenBottomNav from "@/components/navigation/CitizenBottomNav";
+import Chatbot from "@/components/Landing/Chatbot";
 
 export default function MyPortal() {
   const navigate = useNavigate();
@@ -193,7 +195,8 @@ export default function MyPortal() {
   const totalApps = applications.length;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-20 lg:pb-0">
+      <Chatbot />
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between p-4 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm">
         <div className="flex items-center gap-3">
@@ -457,81 +460,85 @@ export default function MyPortal() {
           )}
 
           {activeSection === 'services' && (
-            <div className="space-y-10 animate-in slide-in-from-right duration-500">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                  <h2 className="text-5xl font-black tracking-tight leading-none mb-3">Browse Services</h2>
-                  <p className="text-muted-foreground text-xl font-medium">Access the full catalog of Zambian Digital Services.</p>
+            <div className="space-y-6 animate-in slide-in-from-right duration-500">
+              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tight leading-none mb-1">Services</h2>
+                    <p className="text-muted-foreground text-sm font-medium">Digital Service Catalog</p>
+                  </div>
+                  <div className="relative w-full md:w-80 group">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
+                    <Input 
+                      placeholder="Search services..." 
+                      className="pl-10 bg-white dark:bg-slate-900 border-none shadow-sm h-11 rounded-xl text-sm font-bold"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="relative w-full md:w-96 group">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
-                  <Input 
-                    placeholder="Search by service name or category..." 
-                    className="pl-12 bg-white dark:bg-slate-900 border-none shadow-xl h-14 rounded-2xl text-lg font-bold"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+
+                {/* Category Filter Bar */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3 w-3 text-slate-400" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mr-2 border-r pr-3">Filter</span>
+                    {categories.map((cat) => {
+                      const Icon = typeof cat.icon === 'string' ? (iconMap[cat.icon] || Shield) : cat.icon;
+                      return (
+                        <button
+                          key={cat.title}
+                          onClick={() => setSelectedCategory(cat.title)}
+                          className={cn(
+                            "flex items-center gap-2 px-4 py-1.5 rounded-lg text-[11px] font-black transition-all whitespace-nowrap",
+                            selectedCategory === cat.title
+                              ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                              : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+                          )}
+                        >
+                          <Icon className="h-3 w-3" />
+                          {cat.title}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              {/* Category Filter Bar */}
-              <div className="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar">
-                <div className="p-2 bg-white dark:bg-slate-900 rounded-2xl flex items-center gap-2 shadow-sm border border-slate-100 dark:border-slate-800 shrink-0">
-                  <Filter className="h-4 w-4 text-slate-400 ml-2" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-2 border-r pr-4">Filter By</span>
-                  {categories.map((cat) => {
-                    const Icon = typeof cat.icon === 'string' ? (iconMap[cat.icon] || Shield) : cat.icon;
-                    return (
-                      <button
-                        key={cat.title}
-                        onClick={() => setSelectedCategory(cat.title)}
-                        className={cn(
-                          "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap",
-                          selectedCategory === cat.title
-                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {cat.title}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredServices.map((service) => {
                   return (
-                    <Card key={service.id} className="group border-none shadow-sm hover:shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900 rounded-3xl overflow-hidden">
-                      <div className="h-2 w-full bg-slate-50 dark:bg-slate-800 group-hover:bg-emerald-600 transition-colors" />
-                      <CardHeader className="p-8">
-                        <div className="flex items-center gap-5">
-                          <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-inner">
-                            <Briefcase className="h-8 w-8" />
+                    <Card key={service.id} className="group border-none shadow-sm hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-900 rounded-2xl overflow-hidden flex flex-col">
+                      <div className="h-1 w-full bg-slate-50 dark:bg-slate-800 group-hover:bg-emerald-600 transition-colors" />
+                      <CardHeader className="p-5 pb-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-inner shrink-0">
+                            <Briefcase className="h-5 w-5" />
                           </div>
-                          <div>
-                            <CardTitle className="text-xl font-black tracking-tight">{service.title}</CardTitle>
-                            <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-none font-black text-[10px] uppercase tracking-widest px-3 mt-1">
+                          <div className="min-w-0">
+                            <CardTitle className="text-sm font-black tracking-tight truncate mb-1" title={service.title}>
+                              {service.title}
+                            </CardTitle>
+                            <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5">
                               {service.category_name || "General"}
                             </Badge>
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="px-8 pb-8">
-                        <p className="text-slate-500 dark:text-slate-400 font-medium mb-8 h-12 line-clamp-2 leading-relaxed">
+                      <CardContent className="px-5 pb-5 flex-1 flex flex-col justify-between">
+                        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-4 line-clamp-2 leading-relaxed">
                           {service.description}
                         </p>
-                        <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
-                          <div className="flex items-center gap-2 text-slate-400">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">5-7 Days</span>
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <Clock className="h-3 w-3" />
+                            <span className="text-[8px] font-black uppercase tracking-widest">5-7 Days</span>
                           </div>
                           <Button 
-                            className="bg-emerald-600 hover:bg-emerald-700 font-black px-8 h-12 rounded-xl shadow-lg shadow-emerald-600/20 active:scale-95 transition-all"
+                            className="bg-emerald-600 hover:bg-emerald-700 font-black px-4 h-9 rounded-lg shadow-md shadow-emerald-600/10 active:scale-95 transition-all text-[10px]"
                             onClick={() => navigate(`/${service.portal_slug || 'zambia'}/apply/${service.slug}`)}
                           >
-                            Apply Now
+                            Apply
                           </Button>
                         </div>
                       </CardContent>
@@ -752,6 +759,10 @@ export default function MyPortal() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <CitizenBottomNav 
+        activeSection={activeSection} 
+        onSectionChange={(section) => setActiveSection(section)} 
+      />
     </div>
   );
 }
