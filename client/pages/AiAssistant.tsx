@@ -64,6 +64,7 @@ export default function AiAssistant() {
   const thinkingStages = [
     "Searching government service directory...",
     "Identifying relevant administrative procedures...",
+    "Searching the web for current affairs...",
     "Checking eligibility requirements...",
     "Structuring guided assistance...",
     "Finalizing response..."

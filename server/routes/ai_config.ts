@@ -23,7 +23,8 @@ export const handleGetAiConfig: RequestHandler = async (_req, res) => {
     const s = settings.rows[0];
     res.json({ 
       availableModels: s.available_models || envModels,
-      defaultModel: s.default_model || "openai"
+      defaultModel: s.default_model || "openai",
+      webSearchEnabled: !!s.web_search_enabled && !!process.env.SERPER_API_KEY
     });
   } catch (err) {
     console.error("AI Config Error:", err);
@@ -33,20 +34,20 @@ export const handleGetAiConfig: RequestHandler = async (_req, res) => {
 
 // Update AI settings (Admin only)
 export const handleUpdateAiConfig: RequestHandler = async (req, res) => {
-  const { defaultModel, availableModels } = req.body;
+  const { defaultModel, availableModels, webSearchEnabled } = req.body;
   try {
     const result = await query(
       `UPDATE ai_settings 
-       SET default_model = $1, available_models = $2, updated_at = CURRENT_TIMESTAMP 
+       SET default_model = $1, available_models = $2, web_search_enabled = $3, updated_at = CURRENT_TIMESTAMP 
        RETURNING *`,
-      [defaultModel, availableModels]
+      [defaultModel, availableModels, webSearchEnabled]
     );
     
     if (result.rows.length === 0) {
       // If no row exists, insert one
       const insert = await query(
-        "INSERT INTO ai_settings (default_model, available_models) VALUES ($1, $2) RETURNING *",
-        [defaultModel, availableModels]
+        "INSERT INTO ai_settings (default_model, available_models, web_search_enabled) VALUES ($1, $2, $3) RETURNING *",
+        [defaultModel, availableModels, webSearchEnabled]
       );
       return res.json(insert.rows[0]);
     }

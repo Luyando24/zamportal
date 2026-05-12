@@ -3,6 +3,8 @@ import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
 import { query } from "../lib/db.js";
+import { searchWeb, formatSearchResults } from "../lib/search.js";
+
 
 type SupportedModel = "openai" | "gemini" | "claude" | "groq";
 
@@ -544,15 +546,65 @@ export const handleRecommendServices: RequestHandler = async (req, res) => {
     try {
       if (model === "openai") {
         const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const tools: any[] = [
+          {
+            type: "function",
+            function: {
+              name: "search_web",
+              description: "Search the web for current affairs, news, and real-time information to provide better context for the user.",
+              parameters: {
+                type: "object",
+                properties: {
+                  query: { type: "string" }
+                },
+                required: ["query"]
+              }
+            }
+          }
+        ];
+
         const completion = await client.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMsg }],
+          tools,
+          tool_choice: "auto",
           temperature: 0.5,
         });
-        raw = completion.choices[0]?.message?.content || "";
+
+        const messageRes = completion.choices[0]?.message;
+
+        if (messageRes?.tool_calls) {
+          const toolMessages = [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMsg },
+            messageRes
+          ];
+
+          for (const toolCall of messageRes.tool_calls) {
+            const args = JSON.parse(toolCall.function.arguments);
+            const results = await searchWeb(args.query);
+            toolMessages.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: formatSearchResults(results)
+            } as any);
+          }
+
+          const final = await client.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: toolMessages as any,
+            temperature: 0.5,
+          });
+          raw = final.choices[0]?.message?.content || "";
+        } else {
+          raw = messageRes?.content || "";
+        }
       } else if (model === "gemini") {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-        const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const geminiModel = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash",
+          tools: [{ googleSearchRetrieval: {} } as any]
+        });
         const result = await geminiModel.generateContent(`${systemPrompt}\n\n${userMsg}`);
         raw = result.response.text();
       } else if (model === "claude") {
@@ -1092,15 +1144,71 @@ export const handleInstitutionalChat: RequestHandler = async (req, res) => {
 
     if (selectedModel === "openai") {
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      
+      // Define search tool
+      const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+        {
+          type: "function",
+          function: {
+            name: "search_web",
+            description: "Search the web for current affairs, news, and real-time information that requires checking the live internet.",
+            parameters: {
+              type: "object",
+              properties: {
+                query: { type: "string", description: "The search query to look up on the web." }
+              },
+              required: ["query"]
+            }
+          }
+        }
+      ];
+
       const completion = await client.chat.completions.create({
-        model: "gpt-4o", // Using 4o for document analysis capabilities
+        model: "gpt-4o",
         messages,
+        tools,
+        tool_choice: "auto",
         temperature: 0.7,
       });
-      responseText = completion.choices[0]?.message?.content || "";
+
+      const messageRes = completion.choices[0]?.message;
+
+      if (messageRes?.tool_calls && messageRes.tool_calls.length > 0) {
+        // Handle tool calls
+        for (const toolCall of messageRes.tool_calls) {
+          if (toolCall.function.name === "search_web") {
+            const args = JSON.parse(toolCall.function.arguments);
+            const searchResults = await searchWeb(args.query);
+            const searchContext = formatSearchResults(searchResults);
+            
+            messages.push(messageRes);
+            messages.push({
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: searchContext
+            } as any);
+          }
+        }
+
+        // Final completion with search results
+        const finalCompletion = await client.chat.completions.create({
+          model: "gpt-4o",
+          messages,
+          temperature: 0.7,
+        });
+        responseText = finalCompletion.choices[0]?.message?.content || "";
+      } else {
+        responseText = messageRes?.content || "";
+      }
     } else if (selectedModel === "gemini") {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-      const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      
+      // Enable Google Search Grounding for Gemini
+      const geminiModel = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-pro",
+        tools: [{ googleSearchRetrieval: {} } as any]
+      });
+
       const chat = geminiModel.startChat({
         history: (history || []).map((h: any) => ({
           role: h.role === 'assistant' ? 'model' : 'user',
@@ -1111,24 +1219,113 @@ export const handleInstitutionalChat: RequestHandler = async (req, res) => {
       responseText = result.response.text();
     } else if (selectedModel === "groq") {
       const client = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1" });
+      
+      // Groq also supports tool use with same OpenAI format
+      const tools: any[] = [
+        {
+          type: "function",
+          function: {
+            name: "search_web",
+            description: "Search the web for current affairs, news, and real-time information.",
+            parameters: {
+              type: "object",
+              properties: {
+                query: { type: "string" }
+              },
+              required: ["query"]
+            }
+          }
+        }
+      ];
+
       const completion = await client.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages,
+        tools,
+        tool_choice: "auto"
       });
-      responseText = completion.choices[0]?.message?.content || "";
+
+      const messageRes = completion.choices[0]?.message;
+
+      if (messageRes?.tool_calls) {
+        for (const toolCall of messageRes.tool_calls) {
+          const args = JSON.parse(toolCall.function.arguments);
+          const results = await searchWeb(args.query);
+          messages.push(messageRes);
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: formatSearchResults(results)
+          } as any);
+        }
+        const final = await client.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          messages
+        });
+        responseText = final.choices[0]?.message?.content || "";
+      } else {
+        responseText = messageRes?.content || "";
+      }
     } else if (selectedModel === "claude") {
       const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const message = await client.messages.create({
+      
+      // Claude Tool Use
+      const tools: any[] = [
+        {
+          name: "search_web",
+          description: "Search the web for current affairs and real-time information.",
+          input_schema: {
+            type: "object",
+            properties: {
+              query: { type: "string" }
+            },
+            required: ["query"]
+          }
+        }
+      ];
+
+      const msg = await client.messages.create({
         model: "claude-3-5-sonnet-20240620",
         max_tokens: 4000,
         system: SYSTEM_PROMPT,
+        tools,
         messages: [
           ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
           { role: "user", content: message }
         ],
       });
-      responseText = message.content[0].type === "text" ? message.content[0].text : "";
+
+      if (msg.stop_reason === "tool_use") {
+        const toolCall = msg.content.find(c => c.type === "tool_use") as any;
+        if (toolCall) {
+          const results = await searchWeb(toolCall.input.query);
+          const finalMsg = await client.messages.create({
+            model: "claude-3-5-sonnet-20240620",
+            max_tokens: 4000,
+            system: SYSTEM_PROMPT,
+            messages: [
+              ...(history || []).map((h: any) => ({ role: h.role, content: h.content })),
+              { role: "user", content: message },
+              { role: "assistant", content: msg.content },
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "tool_result",
+                    tool_use_id: toolCall.id,
+                    content: formatSearchResults(results)
+                  }
+                ]
+              }
+            ],
+          });
+          responseText = finalMsg.content[0].type === "text" ? finalMsg.content[0].text : "";
+        }
+      } else {
+        responseText = msg.content[0].type === "text" ? msg.content[0].text : "";
+      }
     }
+
 
     res.json({ response: responseText });
   } catch (err: any) {

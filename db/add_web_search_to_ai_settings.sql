@@ -1,0 +1,1 @@
+ALTER TABLE ai_settings ADD COLUMN IF NOT EXISTS web_search_enabled BOOLEAN DEFAULT FALSE;

@@ -55,6 +55,7 @@ export default function InstitutionalAiPage() {
   const thinkingStages = [
     "Analyzing institutional context...",
     "Reviewing relevant Zambian regulations...",
+    "Searching the web for current affairs...",
     "Scanning document repository...",
     "Structuring advisory response...",
     "Finalizing drafting..."
