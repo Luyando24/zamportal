@@ -314,7 +314,7 @@ const PortalManagement = () => {
       <div className="flex">
         <aside className={`
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 fixed lg:sticky top-[73px] left-0 z-40 lg:z-auto
+          lg:translate-x-0 fixed lg:sticky top-[72px] left-0 z-40 lg:z-auto
           w-72 border-r bg-white dark:bg-slate-900 h-[calc(100vh-4.6rem)] 
           transition-transform duration-300 ease-in-out overflow-y-auto
         `}>
@@ -347,7 +347,7 @@ const PortalManagement = () => {
           </nav>
         </aside>
 
-        <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto overflow-x-hidden">
+        <main className="flex-1 p-4 lg:p-8 max-w-[1600px] mx-auto">
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-in fade-in duration-500">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -622,7 +622,7 @@ const PortalManagement = () => {
 
           {activeTab === 'applications' && (
             <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
-              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+              <div className="sticky top-[72px] z-30 bg-slate-50 dark:bg-slate-950 -mx-4 lg:-mx-8 px-4 lg:px-8 py-4 border-b mb-6 shadow-sm">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <h2 className="text-2xl font-black tracking-tight leading-none mb-1">Application Queue</h2>
@@ -713,7 +713,7 @@ const PortalManagement = () => {
 
           {activeTab === 'services' && (
             <div className="space-y-6 animate-in slide-in-from-right duration-500">
-              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+              <div className="sticky top-[72px] z-30 bg-slate-50 dark:bg-slate-950 -mx-4 lg:-mx-8 px-4 lg:px-8 py-4 border-b mb-6 shadow-sm">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <h2 className="text-2xl font-black tracking-tight leading-none mb-1">Service Catalog</h2>

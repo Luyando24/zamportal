@@ -488,7 +488,7 @@ const AdminPortals = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto overflow-x-hidden">
+        <main className="flex-1 p-4 lg:p-8 max-w-[1600px] mx-auto">
           {activeTab === "overview" && (
             <div className="space-y-8 animate-in fade-in duration-500">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -652,7 +652,7 @@ const AdminPortals = () => {
 
           {activeTab === "portals" && (
             <div className="space-y-6 animate-in slide-in-from-right duration-500">
-              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+              <div className="sticky top-[72px] z-30 bg-slate-50 dark:bg-slate-950 -mx-4 lg:-mx-8 px-4 lg:px-8 py-4 border-b mb-6 shadow-sm">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <h2 className="text-2xl font-black tracking-tight leading-none mb-1">Institutional Portals</h2>
@@ -818,7 +818,7 @@ const AdminPortals = () => {
           {/* Service Management View */}
           {activeTab === "services_mgmt" && (
             <div className="space-y-6 animate-in fade-in duration-500">
-              <div className="sticky top-[73px] z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md -mx-6 lg:-mx-10 px-6 lg:px-10 py-4 border-b mb-6">
+              <div className="sticky top-[72px] z-30 bg-slate-50 dark:bg-slate-950 -mx-4 lg:-mx-8 px-4 lg:px-8 py-4 border-b mb-6 shadow-sm">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                   <div>
                     <h2 className="text-2xl font-black tracking-tight leading-none mb-1">National Service Catalog</h2>
