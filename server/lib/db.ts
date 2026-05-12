@@ -35,13 +35,29 @@ const pool = new Pool(
       }
 );
 
+// Optional Read Replica Pool
+const readOnlyConnectionString = process.env.READ_ONLY_DATABASE_URL;
+const readPool = readOnlyConnectionString 
+  ? new Pool({ 
+      connectionString: readOnlyConnectionString, 
+      ssl: { rejectUnauthorized: false },
+      max: 20
+    }) 
+  : pool; // Fallback to primary if no read replica is configured
+
+if (readOnlyConnectionString) {
+  console.log("📖 Read Replica enabled via READ_ONLY_DATABASE_URL");
+}
+
 // Helper function to execute queries
-export async function query(text: string, params?: any[]): Promise<any> {
+// Automatically routes to read replica if isRead is true
+export async function query(text: string, params?: any[], isRead: boolean = false): Promise<any> {
   const start = Date.now();
   try {
-    const res = await pool.query(text, params);
+    const targetPool = isRead ? readPool : pool;
+    const res = await targetPool.query(text, params);
     const duration = Date.now() - start;
-    // console.log('executed query', { text, duration, rows: res.rowCount });
+    // console.log('executed query', { text, duration, rows: res.rowCount, isRead });
     return res;
   } catch (error) {
     console.error('Database query error:', error);

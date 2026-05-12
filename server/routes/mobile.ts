@@ -2,10 +2,15 @@ import { RequestHandler } from "express";
 import { query } from "../lib/db.js";
 import { Category, Service, Application } from "@shared/api";
 import { v4 as uuidv4 } from "uuid";
+import { cache } from "../lib/cache.js";
 
 export const handleListCategories: RequestHandler = async (req, res) => {
   try {
-    const result = await query('SELECT * FROM service_categories ORDER BY name');
+    const cacheKey = "categories:all";
+    const cached = await cache.get<Category[]>(cacheKey);
+    if (cached) return res.json(cached);
+
+    const result = await query('SELECT * FROM service_categories ORDER BY name', [], true);
     const categories: Category[] = result.rows.map((row: any) => ({
       id: row.id,
       title: row.name,
@@ -14,8 +19,7 @@ export const handleListCategories: RequestHandler = async (req, res) => {
       slug: row.slug,
     }));
     
-    // Cache disabled for development/real-time updates
-    res.setHeader('Cache-Control', 'no-store');
+    await cache.set(cacheKey, categories, 3600); // 1 hour
     res.json(categories);
   } catch (error) {
     console.error('List categories error:', error);
@@ -25,6 +29,10 @@ export const handleListCategories: RequestHandler = async (req, res) => {
 
 export const handleListPopularServices: RequestHandler = async (req, res) => {
   try {
+    const cacheKey = "services:popular";
+    const cached = await cache.get<any[]>(cacheKey);
+    if (cached) return res.json(cached);
+
     const result = await query(`
       SELECT s.*, c.name as category_name,
         COALESCE(
@@ -38,7 +46,7 @@ export const handleListPopularServices: RequestHandler = async (req, res) => {
       LEFT JOIN service_categories c ON s.category_id = c.id
       WHERE s.is_popular = TRUE 
       ORDER BY s.title
-    `);
+    `, [], true);
     const services = result.rows.map((row: any) => ({
       id: row.id,
       title: row.title,
@@ -51,8 +59,7 @@ export const handleListPopularServices: RequestHandler = async (req, res) => {
       isPopular: row.is_popular,
     }));
     
-    // Cache disabled for development/real-time updates
-    res.setHeader('Cache-Control', 'no-store');
+    await cache.set(cacheKey, services, 600); // 10 minutes
     res.json(services);
   } catch (error) {
     console.error('List popular services error:', error);
@@ -84,7 +91,7 @@ export const handleSearchServices: RequestHandler = async (req, res) => {
     }
     
     sql += ' ORDER BY s.title';
-    const result = await query(sql, params);
+    const result = await query(sql, params, true);
     
     const services = result.rows.map((row: any) => ({
       id: row.id,

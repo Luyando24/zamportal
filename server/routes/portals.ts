@@ -1,11 +1,17 @@
 import { RequestHandler } from "express";
 import { query, transaction } from "../lib/db.js";
 import { supabaseAdmin } from "../lib/supabaseAdmin.js";
+import { cache } from "../lib/cache.js";
 
 // List all portals
 export const handleListPortals: RequestHandler = async (req, res) => {
   try {
-    const result = await query("SELECT * FROM portals WHERE is_active = TRUE ORDER BY name ASC");
+    const cacheKey = "portals:all";
+    const cached = await cache.get<any[]>(cacheKey);
+    if (cached) return res.json(cached);
+
+    const result = await query("SELECT * FROM portals WHERE is_active = TRUE ORDER BY name ASC", [], true);
+    await cache.set(cacheKey, result.rows, 3600); // 1 hour
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch portals" });
@@ -16,7 +22,11 @@ export const handleListPortals: RequestHandler = async (req, res) => {
 export const handleGetPortalConfig: RequestHandler = async (req, res) => {
   const { slug } = req.params;
   try {
-    const portalResult = await query("SELECT * FROM portals WHERE LOWER(slug) = LOWER($1) AND is_active = TRUE", [slug]);
+    const cacheKey = `portal:config:${slug.toLowerCase()}`;
+    const cached = await cache.get<any>(cacheKey);
+    if (cached) return res.json(cached);
+
+    const portalResult = await query("SELECT * FROM portals WHERE LOWER(slug) = LOWER($1) AND is_active = TRUE", [slug], true);
     
     if (portalResult.rows.length === 0) {
       return res.status(404).json({ error: "Portal not found" });
@@ -24,9 +34,6 @@ export const handleGetPortalConfig: RequestHandler = async (req, res) => {
 
     const portal = portalResult.rows[0];
 
-    // Fetch services linked to this portal with their associated forms
-    // IMPORTANT: Only list services that either belong to this portal (s.portal_id = $1)
-    // or are global services (s.portal_id IS NULL) that have been explicitly added to this portal.
     const servicesResult = await query(`
       SELECT DISTINCT ON (s.id) s.*, c.name as category_name, c.slug as category_slug,
         (SELECT json_agg(json_build_object(
@@ -40,15 +47,18 @@ export const handleGetPortalConfig: RequestHandler = async (req, res) => {
       LEFT JOIN service_categories c ON s.category_id = c.id
       WHERE (s.portal_id = $1 OR ps.portal_id = $1 OR EXISTS (SELECT 1 FROM portal_service_forms f WHERE f.portal_id = $1 AND f.service_id = s.id))
       AND (s.portal_id IS NULL OR s.portal_id = $1)
-    `, [portal.id]);
+    `, [portal.id], true);
 
-    res.json({
+    const fullConfig = {
       ...portal,
       services: servicesResult.rows.map(s => ({
         ...s,
         forms: s.forms || []
       }))
-    });
+    };
+
+    await cache.set(cacheKey, fullConfig, 900); // 15 minutes
+    res.json(fullConfig);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch portal configuration" });
   }
@@ -129,6 +139,13 @@ export const handleUpdatePortal: RequestHandler = async (req, res) => {
       return portal;
     });
 
+    // Invalidate caches
+    await cache.del("portals:all");
+    await cache.del(`portal:config:${slug.toLowerCase()}`);
+    if (result.slug && result.slug !== slug) {
+      await cache.del(`portal:config:${result.slug.toLowerCase()}`);
+    }
+
     res.json(result);
   } catch (error: any) {
     res.status(error.message === "Portal not found" ? 404 : 500).json({ error: error.message });
@@ -158,6 +175,10 @@ export const handleDeletePortal: RequestHandler = async (req, res) => {
       // 3. Delete the portal (cascades to portal_services, portal_service_forms, service_applications, and local users)
       await client.query("DELETE FROM portals WHERE id = $1", [id]);
     });
+
+    // Invalidate cache
+    await cache.del("portals:all");
+    await cache.clear(); // Safest for deletion
 
     res.json({ message: "Portal and all associated data deleted successfully" });
   } catch (error: any) {
