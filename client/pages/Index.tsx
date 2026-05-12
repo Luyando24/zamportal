@@ -201,41 +201,7 @@ export default function Index() {
 
 
 
-      {/* Service Categories Section */}
-      <section id="services" className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold tracking-tight">Service Categories</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto mt-2">Explore a wide range of government services organized by category.</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {loading ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-48 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200 dark:border-slate-700"></div>
-              ))
-            ) : categories.map((category) => {
-              const Icon = getIcon(category.icon);
-              return (
-                <div key={category.id} className="group relative text-center p-8 rounded-3xl border bg-white dark:bg-slate-900 hover:shadow-2xl transition-all duration-500 overflow-hidden border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-slate-50 dark:bg-slate-800 text-emerald-600 mx-auto mb-6 group-hover:scale-110 transition-transform duration-500">
-                    <Icon className="h-10 w-10" />
-                  </div>
-                  <h3 className="text-lg font-black mb-2 uppercase tracking-tight italic">{category.title}</h3>
-                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest leading-relaxed line-clamp-2">{category.description}</p>
-                  <div className="absolute inset-0 bg-emerald-600/90 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 p-6">
-                    <p className="text-white text-xs font-black uppercase tracking-[0.2em] mb-4 text-center">Enter {category.title} Registry</p>
-                    <Link to="/services" className="w-full">
-                      <Button className="w-full bg-white text-emerald-600 hover:bg-emerald-50 rounded-xl font-black h-12 shadow-xl">
-                        Open Catalog
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+
 
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
