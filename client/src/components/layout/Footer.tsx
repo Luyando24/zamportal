@@ -28,7 +28,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t mt-8 pt-6 text-center text-muted-foreground">
-          &copy; 2024 ZamPortal. All rights reserved.
+          &copy; {new Date().getFullYear()} ZamPortal. All rights reserved.
         </div>
       </div>
     </footer>

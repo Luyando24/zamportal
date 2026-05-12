@@ -464,7 +464,7 @@ export default function AiAssistant() {
       {/* Main Container */}
       <div className="flex-1 flex flex-col relative overflow-hidden bg-[#212121]">
         {/* Header */}
-        <header className="h-14 flex items-center justify-between px-4 sm:px-6 z-50">
+        <header className="h-14 flex items-center justify-between px-4 sm:px-6 z-50 sticky top-0 bg-[#212121]/95 backdrop-blur-sm border-b border-white/5">
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
